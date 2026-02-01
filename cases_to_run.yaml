@@ -1,0 +1,11 @@
+# FILE: cases_to_run.yaml
+# List of folders inside "CASES/" to run sequentially.
+# The solver will run them one by one, cleaning memory in between.
+
+case_folders:
+  #- "Stanford_bunny"
+  #- "Wing_5_deg"
+  #- "Bucker"
+  #- "Wing_0_deg"
+  #- cube1m
+  - ball1m

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OPEN_Ludwig - Quick Start</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            color: #333;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #1a1a2e;
+            border-bottom: 3px solid #9b59b6;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1 .julia-badge {
+            background: linear-gradient(135deg, #9558b2 0%, #4063d8 50%, #389826 100%);
+            color: white;
+            font-size: 0.5em;
+            padding: 4px 10px;
+            border-radius: 12px;
+            vertical-align: middle;
+        }
+        h2 {
+            color: #6c3483;
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: #9b59b6;
+            border-radius: 2px;
+        }
+        .step {
+            background: white;
+            border-radius: 10px;
+            padding: 20px 25px;
+            margin: 15px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border-left: 4px solid #9b59b6;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+        .step-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #9b59b6 0%, #6c3483 100%);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            margin-right: 12px;
+            font-size: 0.95em;
+        }
+        code {
+            background: #f3e5f5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            color: #6c3483;
+        }
+        pre {
+            background: #1a1a2e;
+            color: #e8e8e8;
+            padding: 18px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        .comment { color: #6a9955; }
+        .string { color: #ce9178; }
+        .keyword { color: #569cd6; }
+        .warning {
+            background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
+            border-left: 4px solid #ffc107;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .warning strong { color: #856404; }
+        .success {
+            background: linear-gradient(135deg, #e8f5e9 0%, #d4edda 100%);
+            border-left: 4px solid #28a745;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success strong { color: #155724; }
+        .info {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 4px solid #2196f3;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .info strong { color: #0d47a1; }
+        a { 
+            color: #9b59b6; 
+            text-decoration: none;
+            border-bottom: 1px dashed #9b59b6;
+            transition: color 0.2s;
+        }
+        a:hover { 
+            color: #6c3483;
+            border-bottom-style: solid;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin: 15px 0;
+        }
+        th {
+            background: linear-gradient(135deg, #9b59b6 0%, #6c3483 100%);
+            color: white;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #faf5fc; }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .feature {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+        .feature-title {
+            font-weight: 600;
+            color: #6c3483;
+            font-size: 0.95em;
+        }
+        ul {
+            padding-left: 25px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        ol li {
+            margin: 12px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌊 OPEN_Ludwig Quick Start <span class="julia-badge">Julia + CUDA</span></h1>
+    <p>GPU-accelerated Lattice Boltzmann CFD Solver with D3Q27, WALE LES, and Surface Force Computation</p>
+
+    <div class="features">
+        <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">GPU Accelerated</div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🎯</div>
+            <div class="feature-title">D3Q27 Lattice</div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">🔬</div>
+            <div class="feature-title">WALE Turbulence</div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">Cd, Cl, Cm Output</div>
+        </div>
+    </div>
+
+    <h2>Requirements</h2>
+    <ul>
+        <li><strong>Julia 1.9+</strong> — <a href="https://julialang.org/downloads/" target="_blank">Download here</a></li>
+        <li><strong>NVIDIA GPU</strong> with CUDA support (4+ GB VRAM minimum, 8+ GB recommended)</li>
+        <li><strong>ParaView</strong> for visualization — <a href="https://www.paraview.org/download/" target="_blank">Download here</a></li>
+    </ul>
+
+    <h2>Installation & First Run</h2>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <strong>Install Dependencies</strong> (first time only)
+        <pre><code>julia src/00_First_time_install_packages.jl</code></pre>
+        <small style="color: #888;">This installs CUDA.jl, KernelAbstractions.jl, WriteVTK.jl, and other required packages.</small>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <strong>Verify GPU Detection</strong>
+        <pre><code>julia -e "using CUDA; CUDA.functional() && println(\"GPU: \", CUDA.name(CUDA.device()))"</code></pre>
+        <small style="color: #888;">Should print your GPU name (e.g., "GPU: NVIDIA GeForce RTX 4090")</small>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <strong>Select Cases to Run</strong><br>
+        Edit <code>cases_to_run.yaml</code> to list your cases:
+        <pre><code><span class="comment"># Uncomment the cases you want to run</span>
+<span class="keyword">case_folders:</span>
+  <span class="string">- "Stanford_bunny"</span>
+  <span class="comment"># - "Wing_5_deg"</span>
+  <span class="comment"># - "ball1m"</span></code></pre>
+    </div>
+
+    <div class="step">
+        <span class="step-number">4</span>
+        <strong>Run the Solver</strong>
+        <pre><code>julia src/main.jl</code></pre>
+    </div>
+
+    <div class="success">
+        <strong>✓ Results</strong> are saved in <code>CASES/&lt;case_name&gt;/RESULTS/</code><br>
+        <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+            <li><code>flow_*.vtu</code> — Flow field (velocity, density)</li>
+            <li><code>surface_*.vtu</code> — Surface pressure & shear stress</li>
+            <li><code>convergence.csv</code> — Solver metrics over time</li>
+            <li><code>forces.csv</code> — Aerodynamic coefficients (Cd, Cl, Cm)</li>
+        </ul>
+    </div>
+
+    <h2>Creating a New Case</h2>
+    <ol>
+        <li>Create a folder in <code>CASES/</code> (e.g., <code>CASES/My_Aircraft/</code>)</li>
+        <li>Add your STL geometry file (watertight preferred, units in meters)</li>
+        <li>Copy <code>config.yaml</code> from an existing case and modify:
+            <ul>
+                <li>Set <code>stl_file</code> to your STL filename</li>
+                <li>Adjust <code>reference_area_of_full_model</code> for correct Cd/Cl</li>
+                <li>Set <code>flow.velocity</code> to your desired speed</li>
+            </ul>
+        </li>
+        <li>Add the case name to <code>cases_to_run.yaml</code></li>
+    </ol>
+
+    <h2>Key Config Parameters</h2>
+    <table>
+        <tr>
+            <th>Parameter</th>
+            <th>Purpose</th>
+            <th>Typical Values</th>
+        </tr>
+        <tr>
+            <td><code>surface_resolution</code></td>
+            <td>Mesh density (cells per reference length)</td>
+            <td>100-300 (coarse), 500+ (fine)</td>
+        </tr>
+        <tr>
+            <td><code>flow.velocity</code></td>
+            <td>Inlet velocity [m/s]</td>
+            <td>1-100</td>
+        </tr>
+        <tr>
+            <td><code>simulation.steps</code></td>
+            <td>Total timesteps to run</td>
+            <td>5000-50000</td>
+        </tr>
+        <tr>
+            <td><code>simulation.ramp_steps</code></td>
+            <td>Velocity ramp-up period</td>
+            <td>1000-5000</td>
+        </tr>
+        <tr>
+            <td><code>num_levels</code></td>
+            <td>Grid refinement levels (0 = auto)</td>
+            <td>5-8</td>
+        </tr>
+        <tr>
+            <td><code>u_lattice</code></td>
+            <td>Lattice velocity (stability vs speed)</td>
+            <td>0.01 (stable), 0.03 (fast)</td>
+        </tr>
+        <tr>
+            <td><code>reference_area_of_full_model</code></td>
+            <td>Reference area for Cd, Cl [m²]</td>
+            <td>Planform area</td>
+        </tr>
+    </table>
+
+    <h2>Understanding Output</h2>
+    <div class="info">
+        <strong>📈 Console Output</strong> shows real-time progress:
+        <pre style="background: #1a1a2e; margin: 10px 0;"><code>    Step |      Walltime |    Time[s] |  U_lat |  ρ_min | MLUPS |       Cd |       Cl
+------------------------------------------------------------------------------------------
+    2000 |   00:00:45.23 |   0.0234   | 0.0100 | 0.9987 | 523.4 |   0.4521 |   0.0234</code></pre>
+        <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 0.9em;">
+            <li><strong>MLUPS</strong> = Million Lattice Updates Per Second (performance)</li>
+            <li><strong>ρ_min</strong> = Minimum density (should stay > 0.5)</li>
+            <li><strong>Cd, Cl</strong> = Drag and Lift coefficients</li>
+        </ul>
+    </div>
+
+    <h2>Stability Tips</h2>
+    <table>
+        <tr>
+            <th>Problem</th>
+            <th>Solution</th>
+        </tr>
+        <tr>
+            <td>Simulation explodes (NaN)</td>
+            <td>Increase <code>ramp_steps</code>, reduce <code>u_lattice</code></td>
+        </tr>
+        <tr>
+            <td>τ warnings</td>
+            <td>Enable <code>wall_model</code>, increase <code>nu_sgs_background</code></td>
+        </tr>
+        <tr>
+            <td>Out of memory</td>
+            <td>Reduce <code>surface_resolution</code> or <code>num_levels</code></td>
+        </tr>
+        <tr>
+            <td>Inaccurate forces</td>
+            <td>Increase resolution, run longer, check reference values</td>
+        </tr>
+    </table>
+
+    <div class="warning">
+        <strong>⚠ First run is slow</strong> — Julia compiles all code on first execution (5-15 minutes). 
+        Subsequent runs start much faster. The solver prints compilation progress.
+    </div>
+
+    <h2>Viewing in ParaView</h2>
+    <ol>
+        <li>Open ParaView</li>
+        <li>File → Open → Select <code>flow_*.vtu</code> or <code>surface_*.vtu</code></li>
+        <li>Click "Apply" in the Properties panel</li>
+        <li>Color by: <code>VelocityMagnitude</code>, <code>Pressure_Pa</code>, etc.</li>
+        <li>Use the time slider to animate through timesteps</li>
+    </ol>
+
+    <div class="success">
+        <strong>💡 Pro Tip:</strong> For surface pressure visualization, load <code>surface_*.vtu</code> 
+        and color by <code>Pressure_Pa</code>. Use "Rescale to Data Range" for best contrast.
+    </div>
+
+    <footer>
+        <p>See <a href="README.md">README.md</a> for full documentation</p>
+        <p style="font-size: 0.85em; color: #aaa;">OPEN_Ludwig — GPU-Accelerated LBM CFD Solver — AGPL-3.0 License</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,276 @@
+$ julia -t auto main.jl
+┌ Error: You are using CUDA 13.1.0, but CUDA.jl was precompiled for CUDA 13.0.0.
+│ This is unexpected; please file an issue.
+└ @ CUDA C:\Users\USUARIO\.julia\packages\CUDA\FJf6p\src\initialization.jl:148
+[Init] Module loaded (ROBUST VERSION)
+======================================================================
+      MULTI-CASE EXECUTION: 1 cases
+======================================================================
+
+>>> CASE 1/1: ball1m
+[Init] Loading: ball1m
+[Init] ═══════════════════════════════════════════════════════
+[Init] STABILITY SETTINGS:
+[Init]    Background ν_sgs: 0.000500 → τ_eff_min ≈ 0.5015
+[Init]    Sponge f-blending: true
+[Init]    Temporal interpolation: true
+[Init] ═══════════════════════════════════════════════════════
+
+======================================================================
+    LBM SOLVER | D3Q27 | WALE LES | SURFACE FORCE METHOD
+    Case: ball1m | 2026-02-01T23:14:11.503
+======================================================================
+
+[Config] Stability Settings:
+          Background ν_sgs: 0.000500 → τ_eff_min ≈ 0.5015
+          Sponge f-blending: true
+          Temporal interpolation: true
+[Memory] VRAM: 8.85 GB free / 10.00 GB total
+[Backend] CUDA: NVIDIA GeForce RTX 3080
+[00:00:00.85] Building domain...
+[Domain] Loading: C:\01_LBM\v91_2026_02_01_LUDWIG_STL_loads_claude_validation_runs\CASES\ball1m\ball1m.stl
+[Geometry] Loading STL from: C:\01_LBM\v91_2026_02_01_LUDWIG_STL_loads_claude_validation_runs\CASES\ball1m\ball1m.stl
+[Geometry] Format: Binary STL
+[Geometry] Loaded 20480 triangles.
+[Geometry] Bounds: [-0.5, 0.5] x [-0.5, 0.5] x [-0.5, 0.5]
+
+[High-Re] ═══════════════════════════════════════════════════════
+[High-Re] Re = 9.87e+05, L = 1.0000 m, N = 25 cells/L, U_lat = 0.030
+[High-Re] Computed τ_fine = 0.500002
+[High-Re] Effective τ_min (with ν_sgs_bg) = 0.501500
+[High-Re] ⚠ τ ≈ 0.5 (stability limit) - background ν_sgs active
+[High-Re] ═══════════════════════════════════════════════════════
+
+╔══════════════════════════════════════════════════════════════════╗
+║                 LBM DOMAIN CONFIGURATION SUMMARY                 ║
+╠══════════════════════════════════════════════════════════════════╣
+║  Case: ball1m                                        ║
+║  Re = 986667       | 3 levels | Est. 0.05 GB                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+======================================================================
+[Setup] Multi-Level Domain Generation
+        Strategy: Geometry-First (Direct Mesh Check)
+        Boundary: Bouzidi IBM (finest 1 level(s))
+        Temporal Interpolation: ENABLED
+======================================================================
+
+--- Level 1 ---
+  Generating Full Wind Tunnel for Level 1...
+  Full domain: 8×7×7 = 392 blocks
+[Domain] SAT Surface Marking...
+[Domain] Flood Fill...
+[Domain] Filled 28 interior voxels.
+[Domain] Applying Sponge Layers...
+[Domain] Sponge: 34.0% cells affected, max strength = 0.993
+[Domain] Computing wall distances...
+[Domain] Found 412 near-wall cells
+  Total: 392 blocks, 0.20 M voxels
+  Boundary: Simple bounce-back
+
+--- Level 2 ---
+  Added 988 halo blocks
+[Domain] SAT Surface Marking...
+[Domain] Flood Fill...
+[Domain] Filled 548 interior voxels.
+[Domain] Applying Sponge Layers...
+[Domain] Sponge: 0.0% cells affected, max strength = 0.000
+[Domain] Computing wall distances...
+[Domain] Found 1160 near-wall cells
+  Total: 1000 blocks, 0.51 M voxels
+  Boundary: Simple bounce-back
+
+--- Level 3 ---
+  Added 1660 halo blocks
+[Domain] SAT Surface Marking...
+[Domain] Flood Fill...
+[Domain] Filled 6084 interior voxels.
+[Domain] Applying Sponge Layers...
+[Domain] Sponge: 0.0% cells affected, max strength = 0.000
+[Domain] Computing wall distances...
+[Domain] Found 3600 near-wall cells
+[Bouzidi] Computing Q-map and surface mapping for Level 3...
+[Bouzidi] Computing Q-values and surface mapping for 1728 blocks...
+[Bouzidi] Found 5824 boundary cells (0.66%)
+[Bouzidi] Q-map: 45.6 MB, Sparse coords: 91.0 KB
+[Bouzidi] Level 3: 5824 boundary cells
+  Total: 1728 blocks, 0.88 M voxels
+  Boundary: Bouzidi IBM (5824 cells, sparse)
+
+[Verify] Checking parent coverage...
+  Level 2: ✓ (missing parents: 0)
+  Level 3: ✓ (missing parents: 0)
+[Info] Re = 986667.0, τ_levels = 0.500009, 0.500005, 0.500002
+[00:00:07.25] Transferring to GPU...
+[00:00:07.96] Initializing equilibrium...
+[Info] Total cells: 1.6 M
+
+======================================================================
+                    VRAM BREAKDOWN BY LEVEL
+======================================================================
+
+┌─ Level 1: 392 blocks, 0.20M cells ─────────────────────────
+│  Distributions:         41.3 MB  (f + f_temp)
+│  Macroscopic:            5.4 MB  (rho, u, u_temp)
+│  Geometry:               1.7 MB  (obs, sponge, wall)
+│  ────────────────────────────────────────────────────────
+│  Level Total:           48.5 MB
+└──────────────────────────────────────────────────────────────
+
+┌─ Level 2: 1000 blocks, 0.51M cells ─────────────────────────
+│  Distributions:        105.5 MB  (f + f_temp)
+│  Macroscopic:           13.7 MB  (rho, u, u_temp)
+│  Geometry:               4.4 MB  (obs, sponge, wall)
+│  ────────────────────────────────────────────────────────
+│  Level Total:          123.7 MB
+└──────────────────────────────────────────────────────────────
+
+┌─ Level 3: 1728 blocks, 0.88M cells ─────────────────────────
+│  Distributions:        182.2 MB  (f + f_temp)
+│  Macroscopic:           23.6 MB  (rho, u, u_temp)
+│  Geometry:               7.6 MB  (obs, sponge, wall)
+│  Bouzidi:               45.6 MB  (5824 boundary cells)
+│  ────────────────────────────────────────────────────────
+│  Level Total:          259.3 MB
+└──────────────────────────────────────────────────────────────
+
+======================================================================
+                          MEMORY SUMMARY
+======================================================================
+  Distributions:        329.1 MB  ( 76.3%)
+  Macroscopic:           42.7 MB  (  9.9%)
+  Geometry:              13.7 MB  (  3.2%)
+  Connectivity:           0.4 MB  (  0.1%)
+  Bouzidi IBM:           45.6 MB  ( 10.6%)
+----------------------------------------------------------------------
+  TOTAL ALLOCATED:      431.4 MB
+----------------------------------------------------------------------
+  CUDA REPORTED:       2012.4 MB (Includes driver + overhead)
+  Driver Overhead:     1580.9 MB
+  Free VRAM:           8227.0 MB
+======================================================================
+[Forces] Initialized surface stress method for 20480 triangles
+         Reference: ρ=1.225 kg/m³, U=14.8 m/s
+         Reference: A=1.0 m², L=1.0 m
+[00:00:17.57] LBM Analysis STARTED
+
+    Step |     Walltime |    Time[s] |   U_lat |   ρ_min |  MLUPS |       Cd |       Cl
+------------------------------------------------------------------------------------------
+[Surface] Mapped 20480 triangles:
+          Mesh offset: (4.25, 4.48, 4.48)
+          Grid spacing dx = 0.04 m
+          Pressure scale = 298137.78 Pa
+          Coverage: pressure=20480/20480 (100.0%)
+          Pressure range: [9.241e-01, 1.887e+01] Pa
+     200 |  00:00:36.83 |     0.0162 | 0.0007 | 0.9996 |   18.6 |   0.0632 |  -0.0001
+     400 |  00:00:40.73 |     0.0324 | 0.0029 | 0.9992 |   57.3 |   0.1440 |   0.0002
+     600 |  00:00:44.03 |     0.0486 | 0.0062 | 0.9988 |   96.9 |   0.2143 |   0.0007
+     800 |  00:00:47.38 |     0.0649 | 0.0104 | 0.9985 |   95.3 |   0.2727 |   0.0012
+    1000 |  00:00:50.78 |     0.0811 | 0.0150 | 0.9984 |   94.1 |   0.3243 |   0.0019
+    1200 |  00:00:54.20 |     0.0973 | 0.0196 | 0.9985 |   94.0 |   0.3734 |   0.0028
+    1400 |  00:00:57.53 |     0.1135 | 0.0238 | 0.9987 |   95.5 |   0.4153 |   0.0038
+    1600 |  00:01:00.84 |     0.1297 | 0.0271 | 0.9988 |   96.5 |   0.4376 |   0.0049
+    1800 |  00:01:04.14 |     0.1459 | 0.0293 | 0.9984 |   96.6 |   0.4259 |   0.0067
+    2000 |  00:01:07.59 |     0.1622 | 0.0300 | 0.9981 |   92.7 |   0.3685 |   0.0102
+    2200 |  00:01:11.07 |     0.1784 | 0.0300 | 0.9981 |   91.7 |   0.3428 |   0.0168
+    2400 |  00:01:14.58 |     0.1946 | 0.0300 | 0.9981 |   91.1 |   0.3302 |   0.0300
+    2600 |  00:01:18.09 |     0.2108 | 0.0300 | 0.9982 |   91.1 |   0.3219 |   0.0510
+    2800 |  00:01:21.56 |     0.2270 | 0.0300 | 0.9982 |   92.2 |   0.3192 |   0.0801
+    3000 |  00:01:24.91 |     0.2432 | 0.0300 | 0.9982 |   95.3 |   0.3284 |   0.1200
+[00:01:25.59] VTK Export START for step 3000
+[00:01:37.39] VTK Export END (1.42M cells, 11.8s)
+[VTK] Saved: C:\01_LBM\v91_2026_02_01_LUDWIG_STL_loads_claude_validation_runs\CASES\ball1m\RESULTS/surface_003000.vtu (20480/20480 triangles mapped)
+    3200 |  00:01:41.10 |     0.2595 | 0.0300 | 0.9983 |   19.7 |   0.3648 |   0.1734
+    3400 |  00:01:44.39 |     0.2757 | 0.0300 | 0.9983 |   97.0 |   0.4272 |   0.2351
+    3600 |  00:01:47.69 |     0.2919 | 0.0300 | 0.9983 |   97.0 |   0.4984 |   0.2654
+    3800 |  00:01:50.99 |     0.3081 | 0.0300 | 0.9983 |   96.9 |   0.4979 |   0.1971
+    4000 |  00:01:54.30 |     0.3243 | 0.0300 | 0.9983 |   96.4 |   0.4180 |   0.0616
+    4200 |  00:01:57.69 |     0.3405 | 0.0300 | 0.9983 |   94.2 |   0.3353 |  -0.1204
+    4400 |  00:02:01.00 |     0.3568 | 0.0300 | 0.9983 |   96.5 |   0.3452 |  -0.1669
+    4600 |  00:02:04.35 |     0.3730 | 0.0300 | 0.9983 |   95.3 |   0.3748 |  -0.1497
+    4800 |  00:02:07.76 |     0.3892 | 0.0300 | 0.9983 |   93.8 |   0.3854 |  -0.1141
+    5000 |  00:02:11.17 |     0.4054 | 0.0300 | 0.9983 |   93.5 |   0.3800 |  -0.0680
+    5200 |  00:02:14.50 |     0.4216 | 0.0300 | 0.9983 |   96.0 |   0.3514 |  -0.0149
+    5400 |  00:02:17.77 |     0.4378 | 0.0300 | 0.9983 |   97.8 |   0.3551 |   0.0078
+    5600 |  00:02:21.05 |     0.4541 | 0.0300 | 0.9983 |   97.4 |   0.4140 |  -0.0682
+    5800 |  00:02:24.32 |     0.4703 | 0.0300 | 0.9983 |   97.8 |   0.4668 |  -0.1330
+    6000 |  00:02:27.60 |     0.4865 | 0.0300 | 0.9983 |   97.4 |   0.4663 |  -0.1213
+[00:02:27.60] VTK Export START for step 6000
+[00:02:38.39] VTK Export END (1.42M cells, 10.8s)
+[VTK] Saved: C:\01_LBM\v91_2026_02_01_LUDWIG_STL_loads_claude_validation_runs\CASES\ball1m\RESULTS/surface_006000.vtu (20480/20480 triangles mapped)
+    6200 |  00:02:42.05 |     0.5027 | 0.0300 | 0.9983 |   22.1 |   0.4004 |  -0.0152
+    6400 |  00:02:45.33 |     0.5189 | 0.0300 | 0.9983 |   97.3 |   0.3909 |   0.0878
+    6600 |  00:02:48.60 |     0.5351 | 0.0300 | 0.9983 |   97.9 |   0.3969 |   0.0986
+    6800 |  00:02:51.88 |     0.5514 | 0.0300 | 0.9983 |   97.4 |   0.3855 |   0.0744
+    7000 |  00:02:55.16 |     0.5676 | 0.0300 | 0.9983 |   97.4 |   0.3828 |   0.0536
+    7200 |  00:02:58.46 |     0.5838 | 0.0300 | 0.9983 |   96.9 |   0.3733 |   0.0458
+    7400 |  00:03:01.87 |     0.6000 | 0.0300 | 0.9983 |   93.5 |   0.3698 |   0.0352
+    7600 |  00:03:05.36 |     0.6162 | 0.0300 | 0.9983 |   91.5 |   0.3599 |   0.0286
+    7800 |  00:03:08.92 |     0.6324 | 0.0300 | 0.9983 |   90.0 |   0.3561 |   0.0111
+    8000 |  00:03:12.42 |     0.6486 | 0.0300 | 0.9983 |   91.1 |   0.3511 |   0.0077
+    8200 |  00:03:15.92 |     0.6649 | 0.0300 | 0.9983 |   91.6 |   0.3338 |  -0.0067
+    8400 |  00:03:19.42 |     0.6811 | 0.0300 | 0.9983 |   90.8 |   0.3383 |   0.0090
+    8600 |  00:03:22.90 |     0.6973 | 0.0300 | 0.9983 |   91.9 |   0.3307 |   0.0126
+    8800 |  00:03:26.39 |     0.7135 | 0.0300 | 0.9983 |   91.6 |   0.3408 |   0.0158
+    9000 |  00:03:29.89 |     0.7297 | 0.0300 | 0.9983 |   91.4 |   0.3628 |   0.0190
+[00:03:29.89] VTK Export START for step 9000
+[00:03:41.10] VTK Export END (1.42M cells, 11.2s)
+[VTK] Saved: C:\01_LBM\v91_2026_02_01_LUDWIG_STL_loads_claude_validation_runs\CASES\ball1m\RESULTS/surface_009000.vtu (20480/20480 triangles mapped)
+    9200 |  00:03:44.89 |     0.7459 | 0.0300 | 0.9983 |   21.3 |   0.3680 |   0.0221
+    9400 |  00:03:48.37 |     0.7622 | 0.0300 | 0.9983 |   91.7 |   0.3727 |   0.0199
+    9600 |  00:03:51.84 |     0.7784 | 0.0300 | 0.9983 |   92.2 |   0.3730 |   0.0201
+    9800 |  00:03:55.34 |     0.7946 | 0.0300 | 0.9983 |   91.4 |   0.3772 |   0.0246
+   10000 |  00:03:58.86 |     0.8108 | 0.0300 | 0.9983 |   90.8 |   0.3658 |   0.0257
+   10200 |  00:04:02.39 |     0.8270 | 0.0300 | 0.9983 |   90.3 |   0.3638 |   0.0269
+   10400 |  00:04:05.90 |     0.8432 | 0.0300 | 0.9983 |   91.0 |   0.3538 |   0.0141
+   10600 |  00:04:09.38 |     0.8595 | 0.0300 | 0.9983 |   91.8 |   0.3455 |   0.0255
+   10800 |  00:04:12.87 |     0.8757 | 0.0300 | 0.9983 |   91.7 |   0.3685 |   0.0445
+   11000 |  00:04:16.36 |     0.8919 | 0.0300 | 0.9983 |   91.6 |   0.3754 |   0.0533
+   11200 |  00:04:19.85 |     0.9081 | 0.0300 | 0.9983 |   91.5 |   0.3690 |   0.0518
+   11400 |  00:04:23.36 |     0.9243 | 0.0300 | 0.9983 |   91.0 |   0.3957 |   0.0422
+   11600 |  00:04:26.84 |     0.9405 | 0.0300 | 0.9983 |   91.8 |   0.3770 |   0.0626
+   11800 |  00:04:30.38 |     0.9568 | 0.0300 | 0.9983 |   90.3 |   0.3727 |   0.1116
+   12000 |  00:04:33.90 |     0.9730 | 0.0300 | 0.9983 |   90.6 |   0.4583 |   0.0907
+[00:04:33.90] VTK Export START for step 12000
+[00:04:45.41] VTK Export END (1.42M cells, 11.5s)
+[VTK] Saved: C:\01_LBM\v91_2026_02_01_LUDWIG_STL_loads_claude_validation_runs\CASES\ball1m\RESULTS/surface_012000.vtu (20480/20480 triangles mapped)
+
+======================================================================
+    SIMULATION COMPLETE | Wall time: 267.5 s | Performance: 71.7 MLUPS
+======================================================================
+
+============================================================
+         AERODYNAMIC FORCES SUMMARY
+============================================================
+
+Reference Values:
+  ρ_ref  = 1.2250 kg/m³
+  U_ref  = 14.8000 m/s
+  A_ref  = 1.0000 m²
+  L_ref  = 1.0000 m
+  q_∞    = 134.1620 Pa
+
+Forces [N]:
+  Fx (drag)  = +6.1484e+01  (pressure: +6.1483e+01, viscous: +5.7553e-04)
+  Fy (side)  = +3.4516e+01  (pressure: +3.4516e+01, viscous: +1.5617e-04)
+  Fz (lift)  = +1.2162e+01  (pressure: +1.2162e+01, viscous: +6.9633e-05)
+
+Moments [N·m]:
+  Mx (roll)  = +2.2588e-05
+  My (pitch) = -3.0404e+00
+  Mz (yaw)   = +8.6291e+00
+
+Coefficients:
+  Cd = +0.458279
+  Cl = +0.090651
+  Cs = +0.257273
+  Cmy = -0.022662
+
+Drag breakdown: 100.0% pressure, 0.0% viscous
+============================================================
+
+[Memory] VRAM: 7.97 GB free / 10.00 GB total
+
+======================================================================
+      ALL CASES COMPLETED
+======================================================================

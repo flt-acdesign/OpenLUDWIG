@@ -1,0 +1,282 @@
+# FILE: CASES/Wing_5_deg/config.yaml
+# ==============================================================================
+# LBM SOLVER CONFIGURATION (D3Q27 WMLES - High Re Production Mode)
+# ==============================================================================
+# This file controls the physics, numerics, and geometry for the Lattice Boltzmann 
+# simulation. It uses the D3Q27 velocity set with a WALE turbulence model and 
+# Wall-Modeled Large Eddy Simulation (WMLES) capability.
+#
+# MASTER CONTROL
+# ==============================================================================
+
+# ##############################################################################
+#                                BASIC PARAMETERS
+# ##############################################################################
+
+basic:
+  # --------------------------------------------------------------------------
+  # INPUT GEOMETRY
+  # --------------------------------------------------------------------------
+  # The STL file defining the obstacle. 
+  # IMPORTANT: The code looks for this file INSIDE your active case folder.
+  stl_file: "model.stl"
+  
+  # Scale factor applied to the STL geometry vertices.
+  # Use 0.001 if your STL is in millimeters but you want meters.
+  # Use 1.0 if your STL is already in meters.
+  stl_scale: 1.
+  
+  # --------------------------------------------------------------------------
+  # MESH RESOLUTION
+  # --------------------------------------------------------------------------
+  # Determines the density of the grid.
+  # "N" cells spanning the reference length.
+  # Higher = More accurate, but RAM and Compute usage scale with N^3 and N^4 respectively.
+  # For WMLES (Wall Modeled LES), target a first-cell y+ of 30-100.
+  surface_resolution: 200
+  
+  # Number of grid refinement levels (Multi-grid).
+  # 0 = AUTO-COMPUTE (Recommended). The solver calculates the number of levels needed
+  #     to ensure the far-field boundaries are far enough away.
+  # >0 = Manual override (e.g., set to 7 to force exactly 7 levels).
+  num_levels: 5
+  
+  # --------------------------------------------------------------------------
+  # REFERENCE VALUES (Required for Aerodynamic Coefficients)
+  # --------------------------------------------------------------------------
+  # These values are used solely for calculating Cl, Cd, Cm.
+  # They do not affect the physics of the flow, only the post-processing numbers.
+  
+  # The planform area of the FULL geometry (even if simulating half).
+  # [m²] used for Cd = Force / (0.5 * rho * U^2 * Area).
+  # NOTE: If 'symmetric_analysis' is true, the solver automatically uses half this value.
+  reference_area_of_full_model: 135.3
+  
+  # Mean Aerodynamic Chord (MAC) or characteristic length.
+  # [m] used for Moment Coefficient (Cm = Moment / (Force * Chord)).
+  reference_chord: 5.34
+  
+  # The length used to calculate the Reynolds number.
+  # [m] Usually the chord length or body length.
+  reference_length_for_meshing: 14
+  
+  # The dimension corresponding to the reference length in the STL file.
+  # Options: "x", "y", "z". Usually "x" for flow aligned with X-axis.
+  reference_dimension: "x"
+  
+  # --------------------------------------------------------------------------
+  # PHYSICS
+  # --------------------------------------------------------------------------
+  fluid:
+    # Air density at sea level (or your specific fluid). [kg/m³]
+    density: 1.225
+    
+    # Kinematic Viscosity (nu = mu / rho). [m²/s]
+    # Air ~ 1.5e-5. Water ~ 1.0e-6.
+    kinematic_viscosity: 1.5e-5
+  
+  flow:
+    # Free-stream inlet velocity in physical units [m/s].
+    # This defines the Mach number and Reynolds number together with viscosity.
+    velocity: 3.0
+
+  simulation:
+    # Total number of time steps to run.
+    steps: 10000
+    
+    # Number of steps to ramp up the velocity from 0 to 'velocity'.
+    # Crucial for stability. Sudden acceleration causes pressure shockwaves 
+    # that can crash the simulation (NaNs). 
+    # Recommended: 1000 to 5000.
+    ramp_steps: 2000
+    
+    # How often to write full 3D VTK output files.
+    # High frequency = huge disk usage.
+    output_freq: 500
+    
+    # Name of the folder where results will be saved (inside the case directory).
+    output_dir: "RESULTS"
+
+
+# --------------------------------------------------------------------------
+    # OUTPUT CONTROL
+    # --------------------------------------------------------------------------
+    # Select which fields to write to the VTK files.
+    output_fields:
+      density: false
+      velocity: true
+      velocity_magnitude: true
+      vorticity: false
+      obstacle: true
+      level: true
+      bouzidi: false
+
+# ##############################################################################
+#                              ADVANCED PARAMETERS
+# ##############################################################################
+
+advanced:
+  # --------------------------------------------------------------------------
+  # LBM NUMERICS
+  # --------------------------------------------------------------------------
+  numerics:
+    # Lattice Velocity (u_lb) in non-dimensional units.
+    # Defines the time step size (dt).
+    # Lower = More stable, more accurate (Compressibility error ~ u_lb^2).
+    # Higher = Faster simulation (larger physical time step).
+    # Range: 0.01 (Precision) to 0.08 (Fast/Rough). Max theoretical limit ~0.57.
+    u_lattice: 0.01
+    
+    # WALE Turbulence Model Constant (C_w).
+    # Controls sub-grid viscosity.
+    # 0.325 = Standard theoretical value.
+    # 0.50 - 0.60 = Often used in LBM to provide extra stability at high Re.
+    c_wale: 0.50
+    
+    # Relaxation Time (Tau) Lower Limit.
+    # In LBM, viscosity is related to Tau. Tau must be > 0.5.
+    # As Tau approaches 0.5, viscosity -> 0, and the solver becomes unstable.
+    # This clamp prevents Tau from going too low (e.g., 0.500001).
+    # "Central Moments" collision allows this to be very close to 0.5.
+    tau_min: 0.500001
+    
+    # Safety multiplier for Tau calculation in auto-refinement.
+    # 1.0 = Aggressive. >1.0 = Conservative (coarser grid for safety).
+    tau_safety_factor: 1.0
+
+    # Inlet Turbulence Intensity (0.0 to 1.0).
+    # Adds synthetic fluctuations to the inlet velocity to trip the boundary layer.
+    # 0.01 = 1% turbulence.
+    inlet_turbulence_intensity: 0.01
+  
+  # --------------------------------------------------------------------------
+  # HIGH REYNOLDS NUMBER OPTIONS
+  # --------------------------------------------------------------------------
+  high_re:
+    # If true, the solver adjusts 'num_levels' automatically to ensure 
+    # the simulation fits in memory and maintains stability.
+    # Set to 'false' if you manually set 'num_levels' in 'basic' settings.
+    auto_levels: false
+    
+    # Maximum allowed levels when using auto-detection.
+    # Limits VRAM usage.
+    max_levels: 12
+    
+    # Minimum number of blocks required in the coarsest level.
+    # Ensures the far-field domain isn't too small.
+    min_coarse_blocks: 4
+    
+    # WALL MODEL (Equilibrium Stress Model)
+    # Essential for High Re flows where the boundary layer is too thin 
+    # to resolve directly (y+ > 10).
+    wall_model:
+      enabled: true               # true = Activate Wall Model.
+      type: "equilibrium"         # Currently supports "equilibrium" (Spalding/Log-law).
+      y_plus_target: 100.0        # Target y+ for the first cell center (approximate).
+      
+    # Adaptive Mesh Refinement (AMR) - Placeholder for future use.
+    adaptive_refinement:
+      enabled: false
+      criterion: "vorticity"
+      threshold: 0.1
+  
+  # --------------------------------------------------------------------------
+  # DOMAIN SIZING
+  # --------------------------------------------------------------------------
+  # All values are multiples of 'reference_length'.
+  domain:
+    upstream: 0.75        # Space in front of the object.
+    downstream: 1.5       # Space behind the object (wake region).
+    lateral: 0.75         # Space to the sides.
+    height: 0.75          # Space above/below.
+    
+    # Thickness of the viscosity sponge layer at boundaries (absorbs reflections).
+    # Fraction of domain size (0.10 = 10%).
+    sponge_thickness: 0.10
+  
+  # --------------------------------------------------------------------------
+  # MESH REFINEMENT
+  # --------------------------------------------------------------------------
+  refinement:
+    # Size of a grid block in cells (NxNxN).
+    # 8 is standard for GPU efficiency (memory coalescing).
+    block_size: 8
+    
+    # How many buffer blocks to keep around the geometry at each level.
+    # Prevents high-velocity flow from exiting a fine grid too quickly.
+    margin: 2
+    
+    # Refinement strategy.
+    # "geometry_first" = Checks intersection with STL triangles directly (Robust).
+    strategy: "geometry_first"
+    
+    # If true, assumes symmetry plane at Y=0.
+    # Reduces domain size by half. Boundary condition at Y=0 becomes slip/symmetry.
+    symmetric_analysis: true
+    
+    # Wake refinement zone (Box behind the object).
+    # Forces high resolution in the wake to capture vortices.
+    wake_enabled: false
+    
+    # Wake dimensions (relative to reference_length)
+    wake_length: 0.25
+    wake_width_factor: 0.1
+    wake_height_factor: 0.1
+  
+  # --------------------------------------------------------------------------
+  # BOUNDARY CONDITIONS
+  # --------------------------------------------------------------------------
+  boundary:
+    # Method for fluid-solid interaction.
+    # "bounce_back" = staircase approximation (1st order). Fast, robust.
+    # "bouzidi" = interpolated bounce-back (2nd order). Accurate geometry, higher noise.
+    method: "bouzidi"
+    
+    # How many levels (starting from finest) use the high-accuracy Bouzidi method.
+    # Usually 1 (finest level only) is sufficient.
+    bouzidi_levels: 1
+    
+    # Store Q-values (distances) in Float16 to save VRAM.
+    use_float16_qmap: true
+    
+    # Threshold for treating a cell as fluid vs solid in Bouzidi interpolation.
+    q_min_threshold: 0.001
+  
+  # --------------------------------------------------------------------------
+  # FORCE/MOMENT COMPUTATION
+  # --------------------------------------------------------------------------
+  forces:
+    enabled: true                 # Calculate Lift/Drag/Moment?
+    output_freq: 0                # 0 = Matches diagnostics frequency.
+    
+    # Point about which aerodynamic moments (Cm) are calculated.
+    # Normalized coordinates [x/Chord, y/Span, z/Thickness] relative to geometry origin.
+    # [0.25, 0.0, 0.0] is standard Quarter-Chord.
+    moment_center: [0.25, 0.0, 0.0]
+  
+  # --------------------------------------------------------------------------
+  # DIAGNOSTICS
+  # --------------------------------------------------------------------------
+  diagnostics:
+    # Frequency (in steps) to print status to console and write CSV logs.
+    freq: 500
+    
+    # Check for NaNs or exploding velocities at every diagnostic step.
+    stability_check: true
+    
+    # Print warning if Tau < 0.51 (approaching instability).
+    print_tau_warning: true
+  
+  # --------------------------------------------------------------------------
+  # GPU OPTIMIZATION
+  # --------------------------------------------------------------------------
+  gpu:
+    # How many time steps to queue on the GPU before syncing with CPU.
+    # Higher = Faster, but less responsive to interrupts.
+    async_depth: 8
+    
+    # Use CUDA Streams for concurrent kernel execution (if applicable).
+    use_streams: true
+    
+    # Optimization for memory access patterns.
+    prefetch_neighbors: true
