@@ -2,6 +2,8 @@
 
 A high-performance, GPU-accelerated Computational Fluid Dynamics (CFD) solver based on the Lattice Boltzmann Method (LBM). Features D3Q27 velocity discretization, WALE turbulence modeling, multi-level grid refinement, Bouzidi interpolated boundary conditions, and surface-based aerodynamic force computation.
 
+The code is in early alpha. 
+
 ![Julia](https://img.shields.io/badge/Julia-1.9+-purple.svg)
 ![CUDA](https://img.shields.io/badge/CUDA-GPU%20Accelerated-green.svg)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
