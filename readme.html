@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OPEN_Ludwig - Quick Start</title>
+    <title>OPEN_Ludwig v1.10 - Quick Start</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -30,6 +30,15 @@
             padding: 4px 10px;
             border-radius: 12px;
             vertical-align: middle;
+        }
+        h1 .version-badge {
+            background: #1a1a2e;
+            color: #00d0ff;
+            font-size: 0.4em;
+            padding: 4px 10px;
+            border-radius: 12px;
+            vertical-align: middle;
+            letter-spacing: 0.5px;
         }
         h2 {
             color: #6c3483;
@@ -120,13 +129,13 @@
             border-radius: 0 8px 8px 0;
         }
         .info strong { color: #0d47a1; }
-        a { 
-            color: #9b59b6; 
+        a {
+            color: #9b59b6;
             text-decoration: none;
             border-bottom: 1px dashed #9b59b6;
             transition: color 0.2s;
         }
-        a:hover { 
+        a:hover {
             color: #6c3483;
             border-bottom-style: solid;
         }
@@ -162,7 +171,7 @@
         }
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
             gap: 15px;
             margin: 20px 0;
         }
@@ -182,6 +191,11 @@
             color: #6c3483;
             font-size: 0.95em;
         }
+        .feature-sub {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 4px;
+        }
         ul {
             padding-left: 25px;
         }
@@ -194,49 +208,58 @@
     </style>
 </head>
 <body>
-    <h1>🌊 OPEN_Ludwig Quick Start <span class="julia-badge">Julia + CUDA</span></h1>
-    <p>GPU-accelerated Lattice Boltzmann CFD Solver with D3Q27, WALE LES, and Surface Force Computation</p>
+    <h1>OPEN_Ludwig Quick Start <span class="julia-badge">Julia + CUDA</span> <span class="version-badge">v1.10</span></h1>
+    <p>GPU-accelerated Lattice Boltzmann CFD Solver with D3Q27 Cumulant Collision, WALE LES, Multi-Level Refinement, and Surface Force Computation</p>
 
     <div class="features">
         <div class="feature">
-            <div class="feature-icon">⚡</div>
+            <div class="feature-icon">&#9889;</div>
             <div class="feature-title">GPU Accelerated</div>
+            <div class="feature-sub">CUDA + CPU fallback</div>
         </div>
         <div class="feature">
-            <div class="feature-icon">🎯</div>
-            <div class="feature-title">D3Q27 Lattice</div>
+            <div class="feature-icon">&#127919;</div>
+            <div class="feature-title">D3Q27 Cumulant</div>
+            <div class="feature-sub">Adaptive omega-4 + limiter</div>
         </div>
         <div class="feature">
-            <div class="feature-icon">🔬</div>
+            <div class="feature-icon">&#128300;</div>
             <div class="feature-title">WALE Turbulence</div>
+            <div class="feature-sub">Wall-Modeled LES</div>
         </div>
         <div class="feature">
-            <div class="feature-icon">📊</div>
+            <div class="feature-icon">&#128200;</div>
             <div class="feature-title">Cd, Cl, Cm Output</div>
+            <div class="feature-sub">Pressure + viscous split</div>
+        </div>
+        <div class="feature">
+            <div class="feature-icon">&#128065;</div>
+            <div class="feature-title">3D Post-Processor</div>
+            <div class="feature-sub">Browser-based (Babylon.js)</div>
         </div>
     </div>
 
     <h2>Requirements</h2>
     <ul>
-        <li><strong>Julia 1.9+</strong> — <a href="https://julialang.org/downloads/" target="_blank">Download here</a></li>
+        <li><strong>Julia 1.12+</strong> &mdash; <a href="https://julialang.org/downloads/" target="_blank">Download here</a></li>
         <li><strong>NVIDIA GPU</strong> with CUDA support (4+ GB VRAM minimum, 8+ GB recommended)</li>
-        <li><strong>ParaView</strong> for visualization — <a href="https://www.paraview.org/download/" target="_blank">Download here</a></li>
+        <li><strong>ParaView</strong> for VTK visualization &mdash; <a href="https://www.paraview.org/download/" target="_blank">Download here</a> (optional &mdash; postv9.html provides built-in visualization)</li>
     </ul>
 
-    <h2>Installation & First Run</h2>
+    <h2>Installation &amp; First Run</h2>
 
     <div class="step">
         <span class="step-number">1</span>
         <strong>Install Dependencies</strong> (first time only)
         <pre><code>julia src/00_First_time_install_packages.jl</code></pre>
-        <small style="color: #888;">This installs CUDA.jl, KernelAbstractions.jl, WriteVTK.jl, and other required packages.</small>
+        <small style="color: #888;">This installs CUDA.jl, KernelAbstractions.jl, WriteVTK.jl, StaticArrays.jl, Atomix.jl, and other required packages.</small>
     </div>
 
     <div class="step">
         <span class="step-number">2</span>
         <strong>Verify GPU Detection</strong>
         <pre><code>julia -e "using CUDA; CUDA.functional() && println(\"GPU: \", CUDA.name(CUDA.device()))"</code></pre>
-        <small style="color: #888;">Should print your GPU name (e.g., "GPU: NVIDIA GeForce RTX 4090")</small>
+        <small style="color: #888;">Should print your GPU name. If no GPU is found, the solver automatically falls back to CPU.</small>
     </div>
 
     <div class="step">
@@ -246,23 +269,27 @@
         <pre><code><span class="comment"># Uncomment the cases you want to run</span>
 <span class="keyword">case_folders:</span>
   <span class="string">- "Stanford_bunny"</span>
-  <span class="comment"># - "Wing_5_deg"</span>
-  <span class="comment"># - "ball1m"</span></code></pre>
+  <span class="comment"># - "ball1m"</span>
+  <span class="comment"># - "cube1m"</span>
+  <span class="comment"># - "Wing_0_deg"</span>
+  <span class="comment"># - "Bucker"</span></code></pre>
     </div>
 
     <div class="step">
         <span class="step-number">4</span>
         <strong>Run the Solver</strong>
-        <pre><code>julia src/main.jl</code></pre>
+        <pre><code>julia --project=src src/main.jl</code></pre>
     </div>
 
     <div class="success">
-        <strong>✓ Results</strong> are saved in <code>CASES/&lt;case_name&gt;/RESULTS/</code><br>
+        <strong>Results</strong> are saved in <code>CASES/&lt;case_name&gt;/RESULTS/</code><br>
         <ul style="margin: 10px 0 0 0; padding-left: 20px;">
-            <li><code>flow_*.vtu</code> — Flow field (velocity, density)</li>
-            <li><code>surface_*.vtu</code> — Surface pressure & shear stress</li>
-            <li><code>convergence.csv</code> — Solver metrics over time</li>
-            <li><code>forces.csv</code> — Aerodynamic coefficients (Cd, Cl, Cm)</li>
+            <li><code>flow_*.vtu</code> &mdash; Flow field (velocity, density) for ParaView</li>
+            <li><code>surface_*.vtu</code> &mdash; Surface pressure &amp; shear stress for ParaView</li>
+            <li><code>surface_*.lbmp</code> &mdash; Binary surface files for the built-in post-processor</li>
+            <li><code>net_forces_*.csv</code> &mdash; Per-triangle net forces (STL coordinate frame)</li>
+            <li><code>convergence.csv</code> &mdash; Solver metrics over time</li>
+            <li><code>forces.csv</code> &mdash; Aerodynamic coefficients (Cd, Cl, Cm) with pressure/viscous decomposition</li>
         </ul>
     </div>
 
@@ -275,6 +302,7 @@
                 <li>Set <code>stl_file</code> to your STL filename</li>
                 <li>Adjust <code>reference_area_of_full_model</code> for correct Cd/Cl</li>
                 <li>Set <code>flow.velocity</code> to your desired speed</li>
+                <li>Set <code>alpha</code> / <code>beta</code> for angle of attack / sideslip</li>
             </ul>
         </li>
         <li>Add the case name to <code>cases_to_run.yaml</code></li>
@@ -285,57 +313,138 @@
         <tr>
             <th>Parameter</th>
             <th>Purpose</th>
-            <th>Typical Values</th>
+            <th>v1.10 Default</th>
+        </tr>
+        <tr>
+            <td><code>collision_operator</code></td>
+            <td>Collision model</td>
+            <td><code>"cumulant"</code></td>
         </tr>
         <tr>
             <td><code>surface_resolution</code></td>
             <td>Mesh density (cells per reference length)</td>
-            <td>100-300 (coarse), 500+ (fine)</td>
-        </tr>
-        <tr>
-            <td><code>flow.velocity</code></td>
-            <td>Inlet velocity [m/s]</td>
-            <td>1-100</td>
-        </tr>
-        <tr>
-            <td><code>simulation.steps</code></td>
-            <td>Total timesteps to run</td>
-            <td>5000-50000</td>
-        </tr>
-        <tr>
-            <td><code>simulation.ramp_steps</code></td>
-            <td>Velocity ramp-up period</td>
-            <td>1000-5000</td>
-        </tr>
-        <tr>
-            <td><code>num_levels</code></td>
-            <td>Grid refinement levels (0 = auto)</td>
-            <td>5-8</td>
+            <td>200</td>
         </tr>
         <tr>
             <td><code>u_lattice</code></td>
             <td>Lattice velocity (stability vs speed)</td>
-            <td>0.01 (stable), 0.03 (fast)</td>
+            <td>0.08</td>
+        </tr>
+        <tr>
+            <td><code>flow.velocity</code></td>
+            <td>Inlet velocity [m/s]</td>
+            <td>10</td>
+        </tr>
+        <tr>
+            <td><code>simulation.steps</code></td>
+            <td>Total timesteps to run</td>
+            <td>10000</td>
+        </tr>
+        <tr>
+            <td><code>simulation.ramp_steps</code></td>
+            <td>Velocity ramp-up period</td>
+            <td>1500 (cumulant)</td>
+        </tr>
+        <tr>
+            <td><code>num_levels</code></td>
+            <td>Grid refinement levels (0 = auto)</td>
+            <td>0</td>
+        </tr>
+        <tr>
+            <td><code>tau_min</code></td>
+            <td>Minimum relaxation time</td>
+            <td>0.501</td>
+        </tr>
+        <tr>
+            <td><code>nu_sgs_background</code></td>
+            <td>Background SGS viscosity</td>
+            <td>0.0 (cumulant)</td>
+        </tr>
+        <tr>
+            <td><code>compressibility_correction</code></td>
+            <td>O(u<sup>4</sup>) equilibrium + thermal DDF</td>
+            <td><code>false</code></td>
         </tr>
         <tr>
             <td><code>reference_area_of_full_model</code></td>
-            <td>Reference area for Cd, Cl [m²]</td>
+            <td>Reference area for Cd, Cl [m&sup2;]</td>
             <td>Planform area</td>
         </tr>
     </table>
 
     <h2>Understanding Output</h2>
     <div class="info">
-        <strong>📈 Console Output</strong> shows real-time progress:
-        <pre style="background: #1a1a2e; margin: 10px 0;"><code>    Step |      Walltime |    Time[s] |  U_lat |  ρ_min | MLUPS |       Cd |       Cl
+        <strong>Console Output</strong> shows real-time progress:
+        <pre style="background: #1a1a2e; margin: 10px 0;"><code>    Step |      Walltime |    Time[s] |  U_lat |  rho_min | MLUPS |       Cd |       Cl
 ------------------------------------------------------------------------------------------
-    2000 |   00:00:45.23 |   0.0234   | 0.0100 | 0.9987 | 523.4 |   0.4521 |   0.0234</code></pre>
+    2000 |   00:00:45.23 |   0.0234   | 0.0800 | 0.9987 | 523.4 |   0.4521 |   0.0234</code></pre>
         <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 0.9em;">
             <li><strong>MLUPS</strong> = Million Lattice Updates Per Second (performance)</li>
-            <li><strong>ρ_min</strong> = Minimum density (should stay > 0.5)</li>
+            <li><strong>rho_min</strong> = Minimum density (should stay &gt; 0.5)</li>
             <li><strong>Cd, Cl</strong> = Drag and Lift coefficients</li>
         </ul>
     </div>
+
+    <h2>Built-in 3D Post-Processor (postv9.html)</h2>
+    <div class="step" style="border-left-color: #2196f3;">
+        <p>LUDWIG includes a <strong>browser-based 3D visualizer</strong> at <code>src/PREPOST/postv9.html</code>. Open it directly in Chrome, Firefox, or Edge &mdash; no installation or server required.</p>
+        <ul>
+            <li><strong>Surface visualization</strong>: Load <code>.lbmp</code> binary files from <code>RESULTS/</code></li>
+            <li><strong>Scalar fields</strong>: Pressure (Pa), Pressure Coefficient (Cp), Shear Stress (Pa)</li>
+            <li><strong>Force vectors</strong>: Load <code>net_forces_*.csv</code> or <code>nodal_loads.csv</code> as colored 3D arrows</li>
+            <li><strong>Color controls</strong>: Rainbow colormap with manual/auto/symmetric scale and color bar</li>
+            <li><strong>Object filtering</strong>: Show/hide individual named objects</li>
+            <li><strong>Camera</strong>: Left-drag orbit, Middle-drag pan, Right-click re-center, Shift-drag zoom window</li>
+        </ul>
+        <p style="font-size: 0.9em; color: #888; margin-bottom: 0;">Powered by Babylon.js (WebGL). Z-up convention matches the solver coordinate system.</p>
+    </div>
+
+    <h2>Structural Load Mapping (map_forces_to_nodes.jl)</h2>
+    <div class="step" style="border-left-color: #28a745;">
+        <p>The standalone tool <code>src/PREPOST/map_forces_to_nodes.jl</code> maps triangle-level CFD forces onto <strong>structural FE nodes</strong>, preserving force and moment equilibrium.</p>
+        <pre><code>julia src/PREPOST/map_forces_to_nodes.jl &lt;nodes.csv&gt; &lt;net_forces.csv&gt; [output_dir]</code></pre>
+        <ul>
+            <li><strong>Input</strong>: Structural nodes CSV + solver's <code>net_forces_*.csv</code></li>
+            <li><strong>Output</strong>: <code>nodal_loads.csv</code> (per-node forces) + <code>Nodal_loads_summary.md</code> (validation report)</li>
+            <li><strong>Algorithm</strong>: 3 nearest nodes per triangle, minimum-norm pseudoinverse distribution (6 constraints: 3 force + 3 moment)</li>
+            <li><strong>Dependencies</strong>: Julia standard library only (no external packages)</li>
+        </ul>
+        <p style="font-size: 0.9em; color: #888; margin-bottom: 0;">The output <code>nodal_loads.csv</code> can be loaded in <code>postv9.html</code> to visualize nodal force vectors on the surface geometry.</p>
+    </div>
+
+    <h2>Collision Operators</h2>
+    <table>
+        <tr>
+            <th>Property</th>
+            <th>Cumulant (default)</th>
+            <th>Regularized BGK (legacy)</th>
+        </tr>
+        <tr>
+            <td>Stability</td>
+            <td>Superior &mdash; independent moment relaxation</td>
+            <td>Good &mdash; requires safety margins</td>
+        </tr>
+        <tr>
+            <td><code>nu_sgs_background</code></td>
+            <td>0.0 (not needed)</td>
+            <td>0.0005 (recommended)</td>
+        </tr>
+        <tr>
+            <td><code>tau_min</code></td>
+            <td>0.501</td>
+            <td>0.505</td>
+        </tr>
+        <tr>
+            <td><code>ramp_steps</code></td>
+            <td>1500</td>
+            <td>4000</td>
+        </tr>
+        <tr>
+            <td>Special features</td>
+            <td>Adaptive omega-4, factored limiter</td>
+            <td>WALE subgrid model</td>
+        </tr>
+    </table>
 
     <h2>Stability Tips</h2>
     <table>
@@ -345,15 +454,15 @@
         </tr>
         <tr>
             <td>Simulation explodes (NaN)</td>
-            <td>Increase <code>ramp_steps</code>, reduce <code>u_lattice</code></td>
+            <td>Increase <code>ramp_steps</code>, reduce <code>u_lattice</code>, switch to <code>cumulant</code></td>
         </tr>
         <tr>
-            <td>τ warnings</td>
-            <td>Enable <code>wall_model</code>, increase <code>nu_sgs_background</code></td>
+            <td>tau warnings</td>
+            <td>Enable <code>wall_model</code>. For BGK: increase <code>nu_sgs_background</code>. For cumulant: ensure <code>adaptive_omega_4: true</code></td>
         </tr>
         <tr>
             <td>Out of memory</td>
-            <td>Reduce <code>surface_resolution</code> or <code>num_levels</code></td>
+            <td>Reduce <code>surface_resolution</code> or <code>num_levels</code>. Disable <code>compressibility_correction</code> to halve DDF VRAM</td>
         </tr>
         <tr>
             <td>Inaccurate forces</td>
@@ -362,27 +471,43 @@
     </table>
 
     <div class="warning">
-        <strong>⚠ First run is slow</strong> — Julia compiles all code on first execution (5-15 minutes). 
-        Subsequent runs start much faster. The solver prints compilation progress.
+        <strong>First run is slow</strong> &mdash; Julia compiles all code on first execution (5-15 minutes).
+        Subsequent runs start much faster. Use <code>julia --project=src</code> to maintain precompilation.
     </div>
 
     <h2>Viewing in ParaView</h2>
     <ol>
         <li>Open ParaView</li>
-        <li>File → Open → Select <code>flow_*.vtu</code> or <code>surface_*.vtu</code></li>
+        <li>File &rarr; Open &rarr; Select <code>flow_*.vtu</code> or <code>surface_*.vtu</code></li>
         <li>Click "Apply" in the Properties panel</li>
-        <li>Color by: <code>VelocityMagnitude</code>, <code>Pressure_Pa</code>, etc.</li>
+        <li>Color by: <code>VelocityMagnitude</code>, <code>Pressure_Pa</code>, <code>ShearMagnitude_Pa</code></li>
         <li>Use the time slider to animate through timesteps</li>
     </ol>
 
     <div class="success">
-        <strong>💡 Pro Tip:</strong> For surface pressure visualization, load <code>surface_*.vtu</code> 
-        and color by <code>Pressure_Pa</code>. Use "Rescale to Data Range" for best contrast.
+        <strong>Tip:</strong> For quick visualization without ParaView, use the built-in <code>postv9.html</code> post-processor.
+        Load <code>.lbmp</code> surface files directly and switch between Pressure, Cp, and Shear fields.
     </div>
+
+    <h2>Typical Workflow</h2>
+    <pre><code><span class="comment"># 1. Run simulation</span>
+julia --project=src src/main.jl
+
+<span class="comment"># 2. Visualize in browser (no ParaView needed)</span>
+<span class="comment">#    Open src/PREPOST/postv9.html, load .lbmp + net_forces CSV</span>
+
+<span class="comment"># 3. Map forces to structural nodes (optional)</span>
+julia src/PREPOST/map_forces_to_nodes.jl \
+    my_nodes.csv \
+    CASES/Wing_0_deg/RESULTS/net_forces_012000.csv \
+    output/
+
+<span class="comment"># 4. Visualize nodal loads in postv9.html</span>
+<span class="comment">#    Load .lbmp surface + nodal_loads.csv</span></code></pre>
 
     <footer>
         <p>See <a href="README.md">README.md</a> for full documentation</p>
-        <p style="font-size: 0.85em; color: #aaa;">OPEN_Ludwig — GPU-Accelerated LBM CFD Solver — AGPL-3.0 License</p>
+        <p style="font-size: 0.85em; color: #aaa;">OPEN_Ludwig v1.10 &mdash; GPU-Accelerated LBM CFD Solver &mdash; Julia 1.12 &mdash; AGPL-3.0 License</p>
     </footer>
 </body>
 </html>

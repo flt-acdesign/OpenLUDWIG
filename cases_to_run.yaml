@@ -1,11 +1,28 @@
 # FILE: cases_to_run.yaml
 # List of folders inside "CASES/" to run sequentially.
 # The solver will run them one by one, cleaning memory in between.
+#
+# VALIDATION RUN — Cube and Sphere at multiple Reynolds numbers
+# Re 1e3–7.5e5: isothermal solver (u_lat=0.08, no DDF)
+# Re 1e7–1e8:   compressible solver (u_lat=0.15, DDF enabled)
+# surface_resolution: 75, domain_length_covered: 3.0, output_freq: 10000
 
 case_folders:
-  #- "Stanford_bunny"
-  #- "Wing_5_deg"
-  #- "Bucker"
-  #- "Wing_0_deg"
-  #- cube1m
-  - ball1m
+  # ── Cube validation (Re 1e3 → 1e8) ──
+  - cube1m_Re1e3           # isothermal
+  - cube1m_Re1e4           # isothermal
+  - cube1m_Re1e5           # isothermal
+  - cube1m_Re2.5e5         # isothermal
+  - cube1m_Re4e5           # isothermal
+  - cube1m_Re7.5e5         # isothermal
+  - cube1m_Re1e7           # compressible + DDF
+  - cube1m_Re1e8           # compressible + DDF
+  # ── Sphere validation (Re 1e3 → 1e8) ──
+  - ball1m_Re1e3           # isothermal
+  - ball1m_Re1e4           # isothermal
+  - ball1m_Re1e5           # isothermal
+  - ball1m_Re2.5e5         # isothermal
+  - ball1m_Re4e5           # isothermal
+  - ball1m_Re7.5e5         # isothermal
+  - ball1m_Re1e7           # compressible + DDF
+  - ball1m_Re1e8           # compressible + DDF

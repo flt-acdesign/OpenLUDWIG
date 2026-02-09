@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Tool: Axes & Smart Planes</title>
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <style>
+        body, html { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #222; user-select: none; }
+        #renderCanvas { width: 100%; height: 100%; touch-action: none; outline: none; }
+
+        /* UI Panel */
+        #ui-container {
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(40, 40, 45, 0.95); padding: 15px;
+            border-radius: 6px; color: #ddd; z-index: 10;
+            width: 280px; border: 1px solid #555;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            max-height: 90vh; overflow-y: auto;
+        }
+
+        h2 { margin: 0 0 10px 0; font-size: 15px; color: #fff; border-bottom: 1px solid #666; padding-bottom: 5px; }
+        .section-title { font-size: 12px; font-weight: bold; color: #00d0ff; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; }
+        .row { margin-bottom: 8px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; }
+        .key { color: #00d0ff; font-weight: bold; }
+
+        input[type=file] { width: 100%; font-size: 12px; margin-bottom: 10px; color: #ccc; }
+
+        input[type=range] { flex-grow: 1; margin: 0 5px; cursor: pointer; }
+        input[type=number] { width: 60px; background: #333; border: 1px solid #555; color: #fff; padding: 2px 5px; border-radius: 4px; }
+        select { width: 100%; background: #333; color: white; border: 1px solid #555; padding: 4px; border-radius: 4px; margin-bottom: 8px; }
+
+        .slider-container { margin-bottom: 5px; }
+        .slider-label { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; }
+
+        .radio-group { display: flex; gap: 10px; margin-bottom: 5px; }
+        .checkbox-row { display: flex; align-items: center; font-size: 13px; margin-bottom: 5px; }
+        .checkbox-row input { margin-right: 8px; }
+
+        #stats { font-size: 11px; color: #aaa; margin-top: 10px; border-top: 1px solid #555; padding-top: 5px; }
+
+        #selectionBox {
+            position: absolute;
+            border: 1px solid #00d0ff;
+            background-color: rgba(0, 208, 255, 0.1);
+            display: none; pointer-events: none; z-index: 100;
+        }
+
+        /* Object filter styling */
+        #objectFilterContainer { display: none; }
+        #objectFilterContainer.visible { display: block; }
+        .object-list { max-height: 120px; overflow-y: auto; background: #2a2a2e; border: 1px solid #555; border-radius: 4px; padding: 4px; margin-bottom: 5px; }
+        .object-item { display: flex; align-items: center; padding: 3px 5px; font-size: 12px; cursor: pointer; border-radius: 3px; }
+        .object-item:hover { background: #3a3a3e; }
+        .object-item input { margin-right: 6px; cursor: pointer; }
+        .object-item label { cursor: pointer; flex-grow: 1; }
+        .object-item .obj-count { color: #888; font-size: 11px; margin-left: 5px; }
+        .object-btns { display: flex; gap: 5px; margin-bottom: 5px; }
+        .object-btns button {
+            flex: 1; padding: 3px 6px; font-size: 11px; cursor: pointer;
+            background: #444; color: #ccc; border: 1px solid #666; border-radius: 3px;
+        }
+        .object-btns button:hover { background: #555; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div id="selectionBox"></div>
+
+    <div id="ui-container">
+        <h2>Vector Analysis Tool</h2>
+        <input type="file" id="csvInput" accept=".csv">
+
+        <div id="objectFilterContainer">
+            <div class="section-title">Object Filter</div>
+            <div class="object-btns">
+                <button id="btnSelectAll">Select All</button>
+                <button id="btnSelectNone">Select None</button>
+            </div>
+            <div class="object-list" id="objectList"></div>
+        </div>
+
+        <div class="section-title">Vector Length Scale</div>
+        <div class="row">
+            <input type="range" id="scaleSlider" min="0.1" max="10.0" step="0.1" value="1.0">
+            <input type="number" id="scaleNumber" min="0.1" max="100.0" step="0.1" value="1.0">
+        </div>
+        <div class="radio-group row">
+            <div><input type="radio" name="scaleMode" value="linear" checked id="rLin"><label for="rLin"> Linear</label></div>
+            <div><input type="radio" name="scaleMode" value="log" id="rLog"><label for="rLog"> Log</label></div>
+        </div>
+
+        <div class="section-title">Color Scale (Magnitude)</div>
+        <div class="row">
+            <label>Min:</label>
+            <input type="number" id="colorMin" step="0.1" value="0.0">
+            <label>Max:</label>
+            <input type="number" id="colorMax" step="0.1" value="1.0">
+        </div>
+
+        <div class="section-title">Point Size</div>
+        <div class="row">
+            <input type="range" id="pointSlider" min="1" max="20" step="1" value="3">
+            <input type="number" id="pointNumber" min="1" max="50" step="1" value="3">
+        </div>
+
+        <div class="section-title">Slicer</div>
+
+        <div class="checkbox-row">
+            <input type="checkbox" id="chkShowPlanes">
+            <label for="chkShowPlanes">Show Clipping Planes</label>
+        </div>
+
+        <label style="font-size:12px; color:#ccc;">Active Axis:</label>
+        <select id="axisSelect">
+            <option value="x">X Axis</option>
+            <option value="y">Y Axis</option>
+            <option value="z" selected>Z Axis (Height)</option>
+        </select>
+
+        <div class="slider-container">
+            <div class="slider-label"><span>Min Clip</span> <span id="lblMin">0.00</span></div>
+            <input type="range" id="sliceMin" min="0" max="100" step="1" value="0">
+        </div>
+        <div class="slider-container">
+            <div class="slider-label"><span>Max Clip</span> <span id="lblMax">100.00</span></div>
+            <input type="range" id="sliceMax" min="0" max="100" step="1" value="100">
+        </div>
+
+        <div id="stats">No file loaded.</div>
+
+        <div style="margin-top:15px; font-size:11px; color:#bbb; line-height: 1.5;">
+            <strong>Controls:</strong><br>
+            <span class="key">Left Drag</span> : Rotate<br>
+            <span class="key">Middle Drag</span> : Pan<br>
+            <span class="key">Right Click</span> : Set Center<br>
+            <span class="key">Shift + Left</span> : Zoom Window
+        </div>
+    </div>
+
+    <canvas id="renderCanvas"></canvas>
+
+    <script>
+        // --- 1. SETUP ---
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+        const selectionBox = document.getElementById("selectionBox");
+
+        canvas.oncontextmenu = function (e) { e.preventDefault(); };
+
+        let vectorMesh = null;
+        let pointsMesh = null;
+        let pivotMarker = null;
+        let minPlane = null;
+        let maxPlane = null;
+        let axesViewer = null; // New Axis System
+
+        let rawVectors = [];
+        let objectNames = new Set();        // unique object names found in CSV
+        let activeObjects = new Set();      // currently selected objects for display
+        let bounds = { min: {x:0, y:0, z:0}, max: {x:1, y:1, z:1}, center: {x:0,y:0,z:0}, size: 1, minMag: 0, maxMag: 1 };
+
+        const createScene = function () {
+            const scene = new BABYLON.Scene(engine);
+            scene.clearColor = new BABYLON.Color4(0.15, 0.15, 0.18, 1);
+
+            // --- CAMERA (Z-UP) ---
+            const camera = new BABYLON.ArcRotateCamera("camera", 0, Math.PI/3, 10, BABYLON.Vector3.Zero(), scene);
+            camera.upVector = new BABYLON.Vector3(0, 0, 1);
+
+            camera.inputs.clear();
+            camera.inputs.addMouseWheel();
+            camera.inputs.addPointers();
+            // buttons array: [rotation_btn, panning_btn]
+            // 0 = left, 1 = middle, 2 = right
+            camera.inputs.attached.pointers.buttons = [0, 1];
+            camera.inputs.attached.pointers._panningMouseButton = 1;
+
+            camera.attachControl(canvas, true, false, 1);
+            camera._panningMouseButton = 1;
+
+            camera.panningSensibility = 500;
+            camera.angularSensibilityX = 1000;
+            camera.angularSensibilityY = 1000;
+            camera.wheelDeltaPercentage = 0.05;
+            camera.lowerBetaLimit = null;
+            camera.upperBetaLimit = null;
+            camera.minZ = 0.01;
+
+            const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 0, 1), scene);
+            light.intensity = 0.9;
+
+            // Pivot Marker
+            pivotMarker = BABYLON.MeshBuilder.CreateSphere("pivot", {diameter: 0.1}, scene);
+            const mat = new BABYLON.StandardMaterial("pivotMat", scene);
+            mat.emissiveColor = new BABYLON.Color3(1, 0.6, 0);
+            mat.disableLighting = true;
+            pivotMarker.material = mat;
+            pivotMarker.isVisible = false;
+            pivotMarker.isPickable = false;
+
+            // Slicing Planes
+            const planeMat = new BABYLON.StandardMaterial("planeMat", scene);
+            planeMat.diffuseColor = new BABYLON.Color3(0, 0.8, 1);
+            planeMat.alpha = 0.2;
+            planeMat.backFaceCulling = false;
+            planeMat.disableLighting = true;
+
+            minPlane = BABYLON.MeshBuilder.CreatePlane("minPlane", {size: 1}, scene);
+            minPlane.material = planeMat;
+            minPlane.isVisible = false;
+            minPlane.isPickable = false;
+
+            maxPlane = BABYLON.MeshBuilder.CreatePlane("maxPlane", {size: 1}, scene);
+            maxPlane.material = planeMat;
+            maxPlane.isVisible = false;
+            maxPlane.isPickable = false;
+
+            return scene;
+        };
+
+        const scene = createScene();
+        engine.runRenderLoop(() => scene.render());
+        window.addEventListener("resize", () => engine.resize());
+
+
+        // --- 2. UI HANDLERS ---
+        const scaleSlider = document.getElementById('scaleSlider');
+        const scaleNumber = document.getElementById('scaleNumber');
+        const radios = document.getElementsByName('scaleMode');
+
+        const colorMinInput = document.getElementById('colorMin');
+        const colorMaxInput = document.getElementById('colorMax');
+
+        const pointSlider = document.getElementById('pointSlider');
+        const pointNumber = document.getElementById('pointNumber');
+
+        const axisSelect = document.getElementById('axisSelect');
+        const sliceMin = document.getElementById('sliceMin');
+        const sliceMax = document.getElementById('sliceMax');
+        const lblMin = document.getElementById('lblMin');
+        const lblMax = document.getElementById('lblMax');
+        const chkShowPlanes = document.getElementById('chkShowPlanes');
+
+        const objectFilterContainer = document.getElementById('objectFilterContainer');
+        const objectListDiv = document.getElementById('objectList');
+        const btnSelectAll = document.getElementById('btnSelectAll');
+        const btnSelectNone = document.getElementById('btnSelectNone');
+
+        scaleSlider.addEventListener('input', () => { scaleNumber.value = scaleSlider.value; rebuildVectors(); });
+        scaleNumber.addEventListener('input', () => { scaleSlider.value = scaleNumber.value; rebuildVectors(); });
+        radios.forEach(r => r.addEventListener('change', rebuildVectors));
+
+        colorMinInput.addEventListener('input', rebuildVectors);
+        colorMaxInput.addEventListener('input', rebuildVectors);
+
+        pointSlider.addEventListener('input', () => { pointNumber.value = pointSlider.value; updatePointSize(); });
+        pointNumber.addEventListener('input', () => { pointSlider.value = pointNumber.value; updatePointSize(); });
+
+        axisSelect.addEventListener('change', rebuildVectors);
+        sliceMin.addEventListener('input', rebuildVectors);
+        sliceMax.addEventListener('input', rebuildVectors);
+        chkShowPlanes.addEventListener('change', rebuildVectors);
+
+        btnSelectAll.addEventListener('click', () => {
+            activeObjects = new Set(objectNames);
+            updateObjectCheckboxes();
+            buildStaticPoints();
+            rebuildVectors();
+        });
+        btnSelectNone.addEventListener('click', () => {
+            activeObjects.clear();
+            updateObjectCheckboxes();
+            buildStaticPoints();
+            rebuildVectors();
+        });
+
+
+        // --- 3. LOGIC ---
+        function updatePointSize() {
+            if(pointsMesh && pointsMesh.material) {
+                pointsMesh.material.pointSize = parseFloat(pointNumber.value);
+            }
+        }
+
+        function getRainbowColor(value, min, max) {
+            let t = 0;
+            if (max > min) { t = (value - min) / (max - min); }
+            t = Math.max(0, Math.min(1, t));
+            const hue = (1.0 - t) * 240;
+            const s = 1.0; const v = 1.0;
+            const c = v * s;
+            const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+            const m = v - c;
+            let r = 0, g = 0, b = 0;
+            if (0 <= hue && hue < 60) { r = c; g = x; b = 0; }
+            else if (60 <= hue && hue < 120) { r = x; g = c; b = 0; }
+            else if (120 <= hue && hue < 180) { r = 0; g = c; b = x; }
+            else if (180 <= hue && hue < 240) { r = 0; g = x; b = c; }
+            else if (240 <= hue && hue < 300) { r = x; g = 0; b = c; }
+            else { r = c; g = 0; b = x; }
+            return new BABYLON.Color4(r + m, g + m, b + m, 1);
+        }
+
+        document.getElementById('csvInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            const r = new FileReader();
+            r.onload = (ev) => loadCSV(ev.target.result);
+            r.readAsText(file);
+        });
+
+        function loadCSV(text) {
+            rawVectors = [];
+            objectNames = new Set();
+            const rows = text.split(/\r?\n/);
+
+            // Auto-detect CSV format from header
+            // New format: triangle_id,object_name,cx,cy,cz,Fx,Fy,Fz  (8 columns)
+            // Old format: triangle_id,cx,cy,cz,Fx,Fy,Fz              (7 columns)
+            const header = rows[0] ? rows[0].trim().toLowerCase() : "";
+            const hasObjectName = header.includes("object_name");
+
+            let min = new BABYLON.Vector3(Infinity, Infinity, Infinity);
+            let max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity);
+            let minMag = Infinity;
+            let maxMag = -Infinity;
+
+            // Count triangles per object for display
+            const objectCounts = {};
+
+            for(let i=1; i<rows.length; i++) {
+                const r = rows[i].trim();
+                if(!r) continue;
+                const c = r.split(',');
+
+                let objName, cx, cy, cz, Fx, Fy, Fz;
+
+                if (hasObjectName) {
+                    // New format: id, object_name, cx, cy, cz, Fx, Fy, Fz
+                    if(c.length < 8) continue;
+                    objName = c[1].trim();
+                    cx = parseFloat(c[2]);
+                    cy = parseFloat(c[3]);
+                    cz = parseFloat(c[4]);
+                    Fx = parseFloat(c[5]);
+                    Fy = parseFloat(c[6]);
+                    Fz = parseFloat(c[7]);
+                } else {
+                    // Old format: id, cx, cy, cz, Fx, Fy, Fz
+                    if(c.length < 7) continue;
+                    objName = "default";
+                    cx = parseFloat(c[1]);
+                    cy = parseFloat(c[2]);
+                    cz = parseFloat(c[3]);
+                    Fx = parseFloat(c[4]);
+                    Fy = parseFloat(c[5]);
+                    Fz = parseFloat(c[6]);
+                }
+
+                if(isNaN(cx)) continue;
+
+                objectNames.add(objName);
+                objectCounts[objName] = (objectCounts[objName] || 0) + 1;
+
+                const pos = new BABYLON.Vector3(cx, cy, cz);
+                const vec = new BABYLON.Vector3(Fx, Fy, Fz);
+                const mag = vec.length();
+
+                if (mag < minMag) minMag = mag;
+                if (mag > maxMag) maxMag = mag;
+
+                const dir = (mag > 0) ? vec.scale(1/mag) : BABYLON.Vector3.Zero();
+
+                rawVectors.push({pos, dir, mag, obj: objName});
+
+                min = BABYLON.Vector3.Minimize(min, pos);
+                max = BABYLON.Vector3.Maximize(max, pos);
+            }
+
+            if(rawVectors.length === 0) {
+                document.getElementById('stats').innerText = "Error: No data.";
+                return;
+            }
+
+            // Select all objects by default
+            activeObjects = new Set(objectNames);
+
+            // Build object filter UI
+            buildObjectFilterUI(objectCounts);
+
+            bounds.min = min;
+            bounds.max = max;
+            bounds.minMag = minMag;
+            bounds.maxMag = maxMag;
+            bounds.center = min.add(max).scale(0.5);
+            bounds.size = max.subtract(min).length();
+
+            colorMinInput.value = minMag.toFixed(2);
+            colorMaxInput.value = maxMag.toFixed(2);
+
+            sliceMin.min = 0; sliceMin.max = 1000; sliceMin.value = 0;
+            sliceMax.min = 0; sliceMax.max = 1000; sliceMax.value = 1000;
+
+            // --- AXES VIEWER ---
+            if (axesViewer) axesViewer.dispose();
+            // Scale axes to 20% of the bounding box size
+            const axisSize = bounds.size * 0.2;
+            axesViewer = new BABYLON.AxesViewer(scene, axisSize);
+
+            buildStaticPoints();
+            rebuildVectors();
+
+            const objInfo = objectNames.size > 1 ? ` (${objectNames.size} objects)` : '';
+            document.getElementById('stats').innerText = `Loaded ${rawVectors.length} vectors${objInfo}.`;
+
+            scene.activeCamera.setTarget(bounds.center);
+            scene.activeCamera.radius = bounds.size * 1.5;
+            scene.activeCamera.minZ = bounds.size * 0.005;
+            scene.activeCamera.panningSensibility = 2000 / (bounds.size || 1);
+        }
+
+        function buildObjectFilterUI(objectCounts) {
+            objectListDiv.innerHTML = '';
+
+            // Only show filter panel if there are multiple objects
+            if (objectNames.size <= 1) {
+                objectFilterContainer.classList.remove('visible');
+                return;
+            }
+
+            objectFilterContainer.classList.add('visible');
+
+            // Sort object names alphabetically
+            const sortedNames = Array.from(objectNames).sort();
+
+            for (const name of sortedNames) {
+                const count = objectCounts[name] || 0;
+                const item = document.createElement('div');
+                item.className = 'object-item';
+
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.id = 'obj_' + name;
+                cb.checked = activeObjects.has(name);
+                cb.addEventListener('change', () => {
+                    if (cb.checked) {
+                        activeObjects.add(name);
+                    } else {
+                        activeObjects.delete(name);
+                    }
+                    buildStaticPoints();
+                    rebuildVectors();
+                });
+
+                const lbl = document.createElement('label');
+                lbl.htmlFor = cb.id;
+                lbl.textContent = name;
+
+                const countSpan = document.createElement('span');
+                countSpan.className = 'obj-count';
+                countSpan.textContent = `(${count.toLocaleString()})`;
+
+                item.appendChild(cb);
+                item.appendChild(lbl);
+                item.appendChild(countSpan);
+                objectListDiv.appendChild(item);
+            }
+        }
+
+        function updateObjectCheckboxes() {
+            const checkboxes = objectListDiv.querySelectorAll('input[type=checkbox]');
+            for (const cb of checkboxes) {
+                const name = cb.id.replace('obj_', '');
+                cb.checked = activeObjects.has(name);
+            }
+        }
+
+        function buildStaticPoints() {
+            if (pointsMesh) pointsMesh.dispose();
+
+            const positions = [];
+            const colors = [];
+            for (let v of rawVectors) {
+                if (!activeObjects.has(v.obj)) continue;
+                positions.push(v.pos.x, v.pos.y, v.pos.z);
+                colors.push(1, 1, 1, 1);
+            }
+
+            if (positions.length === 0) {
+                pointsMesh = null;
+                return;
+            }
+
+            pointsMesh = new BABYLON.Mesh("dots", scene);
+            const vertexData = new BABYLON.VertexData();
+            vertexData.positions = positions;
+            vertexData.colors = colors;
+            vertexData.applyToMesh(pointsMesh);
+
+            const mat = new BABYLON.StandardMaterial("dotMat", scene);
+            mat.pointsCloud = true;
+            mat.pointSize = parseFloat(pointNumber.value);
+            mat.emissiveColor = new BABYLON.Color3(1, 1, 1);
+            mat.disableLighting = true;
+            pointsMesh.material = mat;
+            pointsMesh.isPickable = false;
+        }
+
+        function rebuildVectors() {
+            if(rawVectors.length === 0) return;
+            if(vectorMesh) vectorMesh.dispose();
+
+            const scale = parseFloat(scaleNumber.value);
+            const isLog = document.querySelector('input[name="scaleMode"]:checked').value === 'log';
+            const axis = axisSelect.value;
+            const showPlanes = chkShowPlanes.checked;
+
+            const cMin = parseFloat(colorMinInput.value);
+            const cMax = parseFloat(colorMaxInput.value);
+
+            const dMin = bounds.min[axis];
+            const dMax = bounds.max[axis];
+            const dRange = dMax - dMin;
+
+            const userMin = (parseFloat(sliceMin.value) / 1000) * dRange + dMin;
+            const userMax = (parseFloat(sliceMax.value) / 1000) * dRange + dMin;
+
+            lblMin.innerText = userMin.toFixed(2);
+            lblMax.innerText = userMax.toFixed(2);
+
+            updatePlanes(axis, userMin, userMax, showPlanes);
+
+            const lines = [];
+            const colors = [];
+            const colorOrigin = new BABYLON.Color4(0.2, 1, 0.5, 1);
+
+            let count = 0;
+            let totalActive = 0;
+
+            for(let v of rawVectors) {
+                // Object filter
+                if (!activeObjects.has(v.obj)) continue;
+                totalActive++;
+
+                const val = v.pos[axis];
+                if (val < userMin || val > userMax) continue;
+
+                count++;
+                let len = v.mag;
+                if(isLog) len = Math.log(1 + v.mag);
+                len *= scale;
+
+                const colorTip = getRainbowColor(v.mag, cMin, cMax);
+
+                lines.push([v.pos, v.pos.add(v.dir.scale(len))]);
+                colors.push([colorOrigin, colorTip]);
+            }
+
+            if (count > 0) {
+                vectorMesh = BABYLON.MeshBuilder.CreateLineSystem("v", {lines: lines, colors: colors}, scene);
+                vectorMesh.isPickable = true;
+            }
+
+            const objInfo = objectNames.size > 1 ? ` | ${activeObjects.size}/${objectNames.size} objects` : '';
+            document.getElementById('stats').innerText = `Visible: ${count} / ${totalActive} vectors${objInfo}`;
+        }
+
+        function updatePlanes(axis, valMin, valMax, visible) {
+            if (!visible) {
+                minPlane.isVisible = false;
+                maxPlane.isVisible = false;
+                return;
+            }
+
+            minPlane.isVisible = true;
+            maxPlane.isVisible = true;
+
+            // --- SMART SIZING: Fit planes to the Bounding Box Cross-Section ---
+            // Calculate dimensions of the bounding box
+            const sizeX = bounds.max.x - bounds.min.x;
+            const sizeY = bounds.max.y - bounds.min.y;
+            const sizeZ = bounds.max.z - bounds.min.z;
+            const c = bounds.center;
+
+            minPlane.rotationQuaternion = null;
+            maxPlane.rotationQuaternion = null;
+            minPlane.rotation = new BABYLON.Vector3(0,0,0);
+            maxPlane.rotation = new BABYLON.Vector3(0,0,0);
+
+            if (axis === 'z') {
+                // Slicing Z (Height). Plane is parallel to XY.
+                // Width = sizeX, Height = sizeY
+                minPlane.scaling.x = sizeX;
+                minPlane.scaling.y = sizeY;
+                maxPlane.scaling.x = sizeX;
+                maxPlane.scaling.y = sizeY;
+
+                minPlane.position = new BABYLON.Vector3(c.x, c.y, valMin);
+                maxPlane.position = new BABYLON.Vector3(c.x, c.y, valMax);
+            }
+            else if (axis === 'x') {
+                // Slicing X. Plane is parallel to YZ.
+                // Plane mesh default is XY. We rotate 90 Y.
+                // Visual width becomes Z, Visual height becomes Y.
+                // So Scaling X = sizeZ, Scaling Y = sizeY
+                minPlane.scaling.x = sizeZ;
+                minPlane.scaling.y = sizeY;
+                maxPlane.scaling.x = sizeZ;
+                maxPlane.scaling.y = sizeY;
+
+                minPlane.position = new BABYLON.Vector3(valMin, c.y, c.z);
+                maxPlane.position = new BABYLON.Vector3(valMax, c.y, c.z);
+                minPlane.rotation.y = Math.PI / 2;
+                maxPlane.rotation.y = Math.PI / 2;
+            }
+            else if (axis === 'y') {
+                // Slicing Y. Plane is parallel to XZ.
+                // Rotate 90 X.
+                // Visual width becomes X, Visual height becomes Z.
+                minPlane.scaling.x = sizeX;
+                minPlane.scaling.y = sizeZ;
+                maxPlane.scaling.x = sizeX;
+                maxPlane.scaling.y = sizeZ;
+
+                minPlane.position = new BABYLON.Vector3(c.x, valMin, c.z);
+                maxPlane.position = new BABYLON.Vector3(c.x, valMax, c.z);
+                minPlane.rotation.x = Math.PI / 2;
+                maxPlane.rotation.x = Math.PI / 2;
+            }
+        }
+
+
+        // --- 4. INTERACTION ---
+        function getPick(x, y) {
+            const hit = scene.pick(x, y);
+            if (hit.hit) return hit.pickedPoint;
+            const ray = scene.createPickingRay(x, y, BABYLON.Matrix.Identity(), scene.activeCamera);
+            const dist = BABYLON.Vector3.Distance(scene.activeCamera.position, scene.activeCamera.target);
+            return ray.origin.add(ray.direction.scale(dist));
+        }
+
+        canvas.addEventListener("pointerdown", (evt) => {
+            if (evt.button === 2) {
+                const target = getPick(evt.clientX, evt.clientY);
+                const anim = new BABYLON.Animation("t", "target", 60, BABYLON.Animation.ANIMATIONTYPE_VECTOR3);
+                anim.setKeys([{frame:0, value:scene.activeCamera.target}, {frame:20, value:target}]);
+                scene.beginDirectAnimation(scene.activeCamera, [anim], 0, 20);
+                pivotMarker.position = target;
+                pivotMarker.isVisible = true;
+                const s = scene.activeCamera.radius * 0.03;
+                pivotMarker.scaling = new BABYLON.Vector3(s, s, s);
+            }
+            if (evt.shiftKey && evt.button === 0) {
+                isSelecting = true;
+                startX = evt.clientX;
+                startY = evt.clientY;
+                scene.activeCamera.detachControl();
+                selectionBox.style.display = "block";
+                updateBox(startX, startY);
+            }
+        });
+
+        let isSelecting = false;
+        let startX = 0, startY = 0;
+
+        canvas.addEventListener("pointermove", (evt) => {
+            if (isSelecting) updateBox(evt.clientX, evt.clientY);
+        });
+
+        function updateBox(currX, currY) {
+            const x = Math.min(startX, currX);
+            const y = Math.min(startY, currY);
+            const w = Math.abs(startX - currX);
+            const h = Math.abs(startY - currY);
+            selectionBox.style.left = x + 'px';
+            selectionBox.style.top = y + 'px';
+            selectionBox.style.width = w + 'px';
+            selectionBox.style.height = h + 'px';
+        }
+
+        canvas.addEventListener("pointerup", (evt) => {
+            if (isSelecting) {
+                isSelecting = false;
+                selectionBox.style.display = "none";
+                scene.activeCamera.attachControl(canvas, true, false, 1);
+                scene.activeCamera._panningMouseButton = 1;
+                if (scene.activeCamera.inputs.attached.pointers) {
+                    scene.activeCamera.inputs.attached.pointers._panningMouseButton = 1;
+                }
+                const w = Math.abs(evt.clientX - startX);
+                const h = Math.abs(evt.clientY - startY);
+                if (w > 10 && h > 10) performZoom(startX, startY, evt.clientX, evt.clientY, w, h);
+            }
+        });
+
+        function performZoom(x1, y1, x2, y2, w, h) {
+            const cx = (x1 + x2) / 2;
+            const cy = (y1 + y2) / 2;
+            const newTarget = getPick(cx, cy);
+            const screenH = canvas.clientHeight;
+            let ratio = h / screenH;
+            if (ratio < 0.02) ratio = 0.02;
+            const newRadius = scene.activeCamera.radius * ratio;
+
+            const animT = new BABYLON.Animation("t", "target", 60, BABYLON.Animation.ANIMATIONTYPE_VECTOR3);
+            animT.setKeys([{frame:0, value:scene.activeCamera.target.clone()}, {frame:30, value:newTarget}]);
+            const animR = new BABYLON.Animation("r", "radius", 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT);
+            animR.setKeys([{frame:0, value:scene.activeCamera.radius}, {frame:30, value:newRadius}]);
+            scene.beginDirectAnimation(scene.activeCamera, [animT, animR], 0, 30);
+
+            pivotMarker.position = newTarget;
+            pivotMarker.isVisible = true;
+            const s = newRadius * 0.03;
+            pivotMarker.scaling = new BABYLON.Vector3(s, s, s);
+        }
+    </script>
+</body>
+</html>

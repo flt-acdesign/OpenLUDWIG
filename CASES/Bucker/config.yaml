@@ -9,7 +9,7 @@
 # ==============================================================================
 
 # ##############################################################################
-#                                BASIC PARAMETERS
+#                                 BASIC PARAMETERS
 # ##############################################################################
 
 basic:
@@ -19,11 +19,16 @@ basic:
   # The STL file defining the obstacle. 
   # IMPORTANT: The code looks for this file INSIDE your active case folder.
   stl_file: "bucker.stl"
-  
+
   # Scale factor applied to the STL geometry vertices.
   # Use 0.001 if your STL is in millimeters but you want meters.
   # Use 1.0 if your STL is already in meters.
   stl_scale: 1.
+
+  # [deg] Model rotation around Y axis (angle of attack).
+  alpha: 0.0
+  # [deg] Model rotation around Z axis (sideslip). Ignored when symmetric_analysis=true.
+  beta: 0.0
   
   # --------------------------------------------------------------------------
   # MESH RESOLUTION
@@ -32,7 +37,7 @@ basic:
   # "N" cells spanning the reference length.
   # Higher = More accurate, but RAM and Compute usage scale with N^3 and N^4 respectively.
   # For WMLES (Wall Modeled LES), target a first-cell y+ of 30-100.
-  surface_resolution: 350
+  surface_resolution: 300
   
   # Number of grid refinement levels (Multi-grid).
   # 0 = AUTO-COMPUTE (Recommended). The solver calculates the number of levels needed
@@ -62,6 +67,8 @@ basic:
   # The dimension corresponding to the reference length in the STL file.
   # Options: "x", "y", "z". Usually "x" for flow aligned with X-axis.
   reference_dimension: "x"
+
+  minimum_facet_size: 0.2   # [m] Max allowed triangle edge length. 0 = no subdivision.
     
   # --------------------------------------------------------------------------
   # PHYSICS
@@ -77,7 +84,7 @@ basic:
   flow:
     # Free-stream inlet velocity in physical units [m/s].
     # This defines the Mach number and Reynolds number together with viscosity.
-    velocity: 3.0
+    velocity: 50.0
 
   simulation:
     # Total number of time steps to run.
@@ -96,13 +103,12 @@ basic:
     # Name of the folder where results will be saved (inside the case directory).
     output_dir: "RESULTS"
 
-
-# --------------------------------------------------------------------------
+    # --------------------------------------------------------------------------
     # OUTPUT CONTROL
     # --------------------------------------------------------------------------
     # Select which fields to write to the VTK files.
     output_fields:
-      density: false
+      density: true
       velocity: true
       velocity_magnitude: true
       vorticity: false
@@ -111,7 +117,7 @@ basic:
       bouzidi: false
 
 # ##############################################################################
-#                              ADVANCED PARAMETERS
+#                                 ADVANCED PARAMETERS
 # ##############################################################################
 
 advanced:
@@ -119,34 +125,38 @@ advanced:
   # LBM NUMERICS
   # --------------------------------------------------------------------------
   numerics:
-    # Lattice Velocity (u_lb) in non-dimensional units.
-    # Defines the time step size (dt).
-    # Lower = More stable, more accurate (Compressibility error ~ u_lb^2).
-    # Higher = Faster simulation (larger physical time step).
-    # Range: 0.01 (Precision) to 0.08 (Fast/Rough). Max theoretical limit ~0.57.
-    u_lattice: 0.01
-    
-    # WALE Turbulence Model Constant (C_w).
-    # Controls sub-grid viscosity.
-    # 0.325 = Standard theoretical value.
-    # 0.50 - 0.60 = Often used in LBM to provide extra stability at high Re.
+    u_lattice: 0.03
+    # Collision operator selection:
+    #   "regularized_bgk" — Regularized BGK with WALE subgrid model (default)
+    #   "cumulant"         — Cumulant collision operator (D3Q27)
+    collision_operator: "cumulant"
     c_wale: 0.50
-    
-    # Relaxation Time (Tau) Lower Limit.
-    # In LBM, viscosity is related to Tau. Tau must be > 0.5.
-    # As Tau approaches 0.5, viscosity -> 0, and the solver becomes unstable.
-    # This clamp prevents Tau from going too low (e.g., 0.500001).
-    # "Central Moments" collision allows this to be very close to 0.5.
     tau_min: 0.500001
-    
-    # Safety multiplier for Tau calculation in auto-refinement.
-    # 1.0 = Aggressive. >1.0 = Conservative (coarser grid for safety).
     tau_safety_factor: 1.0
+    inlet_turbulence_intensity: 0.0
+    nu_sgs_background: 0.0
+    sponge_blend_distributions: false
+    compressibility_correction: false
 
-    # Inlet Turbulence Intensity (0.0 to 1.0).
-    # Adds synthetic fluctuations to the inlet velocity to trip the boundary layer.
-    # 0.01 = 1% turbulence.
-    inlet_turbulence_intensity: 0.01
+    # ── Phase 2: Cumulant-specific parameters ──
+    # Only used when collision_operator is "cumulant".
+    cumulant:
+      # 2A — Configurable relaxation rates
+      omega_bulk: 1.0        # Bulk viscosity (trace of 2nd-order normal stress)
+      omega_3: 1.0           # 3rd-order cumulants (energy flux)
+      omega_4: 1.0           # 4th-order cumulants (base value)
+
+      # 2B — Geier (2017) adaptive 4th-order relaxation
+      adaptive_omega_4: true  # Enable adaptive ω₄ for diagonal cumulants
+      lambda_param: 0.1667    # Λ parameter (1/6). Controls limiter aggressiveness.
+                              # Smaller Λ → more aggressive stabilization.
+                              # Typical: 1/6 (0.1667) or 1/12 (0.0833)
+
+      # 2C — Cumulant limiters for high-Re stability
+      #   "none"       — No limiter (fastest, least stable)
+      #   "factored"   — Cauchy-Schwarz realizability on 2nd-order cumulants
+      #   "positivity" — Post-collision positivity enforcement (most robust)
+      limiter: "factored"
   
   # --------------------------------------------------------------------------
   # HIGH REYNOLDS NUMBER OPTIONS
@@ -252,6 +262,9 @@ advanced:
     # Normalized coordinates [x/Chord, y/Span, z/Thickness] relative to geometry origin.
     # [0.25, 0.0, 0.0] is standard Quarter-Chord.
     moment_center: [0.25, 0.0, 0.0]
+
+    # Export two-sided net force per triangle (CSV + VTK)
+    net_force_export: true
   
   # --------------------------------------------------------------------------
   # DIAGNOSTICS

@@ -20,11 +20,16 @@ basic:
   # The STL file defining the obstacle. 
   # IMPORTANT: The code looks for this file INSIDE your active case folder.
   stl_file: "bunny.stl"
-  
+
   # Scale factor applied to the STL geometry vertices.
   # Use 0.001 if your STL is in millimeters but you want meters.
   # Use 1.0 if your STL is already in meters.
   stl_scale: 1.
+
+  # [deg] Model rotation around Y axis (angle of attack).
+  alpha: 0.0
+  # [deg] Model rotation around Z axis (sideslip). Ignored when symmetric_analysis=true.
+  beta: 0.0
   
   # --------------------------------------------------------------------------
   # MESH RESOLUTION
@@ -103,7 +108,7 @@ basic:
     # --------------------------------------------------------------------------
     # Select which fields to write to the VTK files.
     output_fields:
-      density: false
+      density: true
       velocity: true
       velocity_magnitude: true
       vorticity: false
@@ -148,7 +153,20 @@ advanced:
     # Adds synthetic fluctuations to the inlet velocity to trip the boundary layer.
     # 0.01 = 1% turbulence.
     inlet_turbulence_intensity: 0.01
-  
+    nu_sgs_background: 0.0
+    sponge_blend_distributions: false
+    compressibility_correction: false
+
+    # ── Cumulant-specific parameters ──
+    # Only used when collision_operator is "cumulant".
+    cumulant:
+      omega_bulk: 1.0
+      omega_3: 1.0
+      omega_4: 1.0
+      adaptive_omega_4: true
+      lambda_param: 0.1667
+      limiter: "factored"
+
   # --------------------------------------------------------------------------
   # HIGH REYNOLDS NUMBER OPTIONS
   # --------------------------------------------------------------------------

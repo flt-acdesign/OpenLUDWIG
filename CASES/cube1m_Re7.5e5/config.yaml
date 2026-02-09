@@ -1,0 +1,115 @@
+# ==============================================================================
+# CUBE 1m VALIDATION — Re = 750,000 (U = 11.25 m/s)
+# ==============================================================================
+
+basic:
+  stl_file: "cube1m.stl"
+  stl_scale: 1.0
+  alpha: 0.0
+  beta: 0.0
+  surface_resolution: 75
+  num_levels: 7
+  reference_area_of_full_model: 1.0
+  reference_chord: 1.0
+  reference_length_for_meshing: 1.0
+  reference_dimension: "x"
+  minimum_facet_size: 0.05
+
+  fluid:
+    density: 1.225
+    kinematic_viscosity: 1.5e-5
+
+  flow:
+    velocity: 11.25
+
+  simulation:
+    domain_length_covered: 3.0
+    ramp_steps: 2000
+    output_freq: 10000
+    output_dir: "RESULTS"
+    output_fields:
+      density: true
+      velocity: true
+      velocity_magnitude: true
+      vorticity: false
+      obstacle: true
+      level: true
+      bouzidi: false
+
+advanced:
+  numerics:
+    u_lattice: 0.08
+    collision_operator: "cumulant"
+    c_wale: 0.50
+    tau_min: 0.501
+    tau_safety_factor: 1.0
+    inlet_turbulence_intensity: 0.0
+    nu_sgs_background: 0.0
+    sponge_blend_distributions: false
+    compressibility_correction: false
+    cumulant:
+      omega_bulk: 1.0
+      omega_3: 1.0
+      omega_4: 1.0
+      adaptive_omega_4: true
+      lambda_param: 0.1667
+      limiter: "positivity"
+
+  thermal:
+    prandtl: 0.71
+    t_inlet: 1.0
+    t_wall: 1.0
+    t_initial: 1.0
+    wall_bc: "adiabatic"
+
+  high_re:
+    auto_levels: false
+    max_levels: 12
+    min_coarse_blocks: 4
+    wall_model:
+      enabled: true
+      type: "equilibrium"
+      y_plus_target: 100.0
+    adaptive_refinement:
+      enabled: false
+      criterion: "vorticity"
+      threshold: 0.1
+
+  domain:
+    upstream: 5
+    downstream: 5
+    lateral: 4
+    height: 4
+    sponge_thickness: 0.10
+
+  refinement:
+    block_size: 8
+    margin: 2
+    strategy: "geometry_first"
+    symmetric_analysis: false
+    wake_enabled: true
+    wake_length: 2
+    wake_width_factor: 1
+    wake_height_factor: 1
+
+  boundary:
+    method: "bouzidi"
+    bouzidi_levels: 1
+    use_float16_qmap: true
+    q_min_threshold: 0.001
+
+  forces:
+    enabled: true
+    output_freq: 0
+    moment_center: [0.25, 0.0, 0.0]
+    net_force_export: true
+
+  diagnostics:
+    freq: 200
+    stability_check: true
+    print_tau_warning: true
+
+  gpu:
+    async_depth: 8
+    use_streams: true
+    prefetch_neighbors: true
