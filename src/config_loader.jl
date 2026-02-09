@@ -15,6 +15,9 @@ global CASE_DIR = ""
 global STL_FILENAME = ""
 global STL_FILE = ""
 global STL_SCALE = 1.0
+global GEOMETRIES_CONFIG = []     # Multi-geometry configuration list
+global HAS_MULTI_GEOMETRY = false # True if using geometries: list in config
+global REMESH_INTERVAL = 0        # Steps between re-voxelizations for dynamic geometry (0 = auto)
 global OUT_DIR_NAME = "RESULTS"
 global OUT_DIR = ""
 global SURFACE_RESOLUTION = 200
@@ -116,9 +119,33 @@ function load_case_configuration(case_folder_name::String)
     println("[Init] Loading: $case_folder_name")
     global CFG = YAML.load_file(config_path)
     
-    global STL_FILENAME = safe_get(CFG, "basic", "stl_file")
-    global STL_FILE = joinpath(CASE_DIR, STL_FILENAME)
-    global STL_SCALE = Float64(safe_get(CFG, "basic", "stl_scale"))
+    # --- Multi-Geometry or Single STL ---
+    geo_list = safe_get(CFG, "basic", "geometries"; default=nothing)
+    if geo_list !== nothing && isa(geo_list, Vector) && !isempty(geo_list)
+        global HAS_MULTI_GEOMETRY = true
+        global GEOMETRIES_CONFIG = geo_list
+        # Use first geometry's STL as primary reference (for backward compat)
+        global STL_FILENAME = geo_list[1]["stl_file"]
+        global STL_FILE = joinpath(CASE_DIR, STL_FILENAME)
+        global STL_SCALE = Float64(get(geo_list[1], "stl_scale", 1.0))
+        global REMESH_INTERVAL = Int(safe_get(CFG, "basic", "remesh_interval"; default=0))
+        println("[Init] Multi-geometry mode: $(length(geo_list)) parts")
+        for (i, g) in enumerate(geo_list)
+            println("[Init]   Part $i: $(g["stl_file"])")
+            rot = get(g, "rotation", Dict())
+            omega = get(rot, "angular_velocity", 0.0)
+            if abs(omega) > 1e-10
+                println("[Init]     → Dynamic rotation: ω=$(omega) rad/s")
+            end
+        end
+    else
+        global HAS_MULTI_GEOMETRY = false
+        global GEOMETRIES_CONFIG = []
+        global STL_FILENAME = safe_get(CFG, "basic", "stl_file")
+        global STL_FILE = joinpath(CASE_DIR, STL_FILENAME)
+        global STL_SCALE = Float64(safe_get(CFG, "basic", "stl_scale"))
+        global REMESH_INTERVAL = 0
+    end
     global OUT_DIR_NAME = safe_get(CFG, "basic", "simulation", "output_dir")
     global OUT_DIR = joinpath(CASE_DIR, OUT_DIR_NAME)
     global SURFACE_RESOLUTION = Int(safe_get(CFG, "basic", "surface_resolution"))

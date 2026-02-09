@@ -268,13 +268,140 @@ end
 function setup_multilevel_domain(stl_path::String; num_levels=NUM_LEVELS)
     println("[Domain] Loading: $stl_path")
     if !isfile(stl_path); error("STL file not found: $stl_path"); end
-    
+
     mesh = Geometry.load_mesh(stl_path, scale=Float64(STL_SCALE))
     bounds = Geometry.compute_mesh_bounds(mesh)
-    
+
     compute_domain_from_mesh(Tuple(bounds.min_bounds), Tuple(bounds.max_bounds))
     params = get_domain_params()
     print_domain_summary()
-    
+
     return setup_multilevel_domain(mesh, params), mesh
+end
+
+"""
+    setup_multilevel_domain_from_parts(parts; num_levels)
+
+Set up the multi-level domain from multiple geometry parts.
+Merges all parts at time=0.0 and builds the domain.
+
+Returns (grids, merged_mesh, params).
+"""
+function setup_multilevel_domain_from_parts(parts::Vector{Geometry.GeometryPart}; num_levels=NUM_LEVELS)
+    mesh = Geometry.merge_geometry_parts(parts, 0.0)
+    bounds = Geometry.compute_mesh_bounds(mesh)
+
+    compute_domain_from_mesh(Tuple(bounds.min_bounds), Tuple(bounds.max_bounds))
+    params = get_domain_params()
+    print_domain_summary()
+
+    return setup_multilevel_domain(mesh, params), mesh
+end
+
+"""
+    revoxelize_geometry!(cpu_grids, mesh, params)
+
+Re-voxelize the obstacle array and recompute Bouzidi q-maps for all grid levels.
+Used when geometry has moved (dynamic rotation).
+
+This updates the CPU grid arrays in place. The caller must then transfer
+the updated arrays to GPU.
+
+Arguments:
+- cpu_grids: Vector of BlockLevel (CPU side)
+- mesh: Updated SolverMesh with moved geometry
+- params: Domain parameters
+"""
+function revoxelize_geometry!(cpu_grids::Vector, mesh::Geometry.SolverMesh, params)
+    num_levels = length(cpu_grids)
+    mesh_offset = SVector(params.mesh_offset[1], params.mesh_offset[2], params.mesh_offset[3])
+
+    println("[Remesh] Re-voxelizing geometry for $(num_levels) levels...")
+
+    for lvl in 1:num_levels
+        level = cpu_grids[lvl]
+        sorted_blocks = level.active_block_coords
+        n_blocks = length(sorted_blocks)
+        scale = 2^(lvl - 1)
+        dx = params.dx_coarse / scale
+
+        bs = BLOCK_SIZE
+
+        # Re-voxelize: clear and recompute obstacle array
+        obstacle_arr = falses(bs, bs, bs, n_blocks)
+        voxelize_blocks!(obstacle_arr, sorted_blocks, mesh, dx, mesh_offset)
+
+        # Re-do flood fill
+        bx_max = level.grid_dim_x
+        by_max = level.grid_dim_y
+        bz_max = level.grid_dim_z
+        block_ptr = zeros(Int32, bx_max, by_max, bz_max)
+        for (idx, (bx, by, bz)) in enumerate(sorted_blocks)
+            block_ptr[bx, by, bz] = Int32(idx)
+        end
+        perform_flood_fill!(obstacle_arr, sorted_blocks, block_ptr, bx_max, by_max, bz_max)
+
+        # Update obstacle in the CPU grid
+        level.obstacle .= obstacle_arr
+
+        # Recompute wall distances if wall model is enabled
+        if WALL_MODEL_ENABLED
+            wall_dist_arr = fill(100.0f0, bs, bs, bs, n_blocks)
+            compute_wall_distances!(wall_dist_arr, sorted_blocks, obstacle_arr, mesh, dx, mesh_offset)
+            level.wall_dist .= wall_dist_arr
+        end
+
+        # Recompute Bouzidi q-maps if this level uses Bouzidi
+        use_bouzidi = should_use_bouzidi(lvl, num_levels, BOUNDARY_METHOD, BOUZIDI_LEVELS)
+
+        if use_bouzidi
+            q_map_cpu, cell_block, cell_x, cell_y, cell_z, tri_map, n_b =
+                compute_bouzidi_qmap_sparse(sorted_blocks, mesh, dx, mesh_offset, BLOCK_SIZE)
+
+            # Update Bouzidi data in the level
+            if n_b > 0
+                level.bouzidi_q_map .= 0
+                # Copy new q-map values (sizes should match since block structure hasn't changed)
+                q_map_f16 = convert(Array{Float16, 5}, q_map_cpu)
+                tri_map_i32 = convert(Array{Int32, 5}, tri_map)
+
+                if size(level.bouzidi_q_map) == size(q_map_f16)
+                    level.bouzidi_q_map .= q_map_f16
+                    level.bouzidi_tri_map .= tri_map_i32
+                end
+            end
+
+            println("[Remesh] Level $lvl: $n_b boundary cells (Bouzidi)")
+        end
+    end
+
+    println("[Remesh] Re-voxelization complete")
+end
+
+"""
+    update_gpu_geometry!(grids, cpu_grids, backend)
+
+Transfer updated obstacle and Bouzidi arrays from CPU to GPU after re-voxelization.
+
+Arguments:
+- grids: Vector of GPU BlockLevel (to update)
+- cpu_grids: Vector of CPU BlockLevel (source of updated data)
+- backend: KernelAbstractions backend
+"""
+function update_gpu_geometry!(grids, cpu_grids, backend)
+    for lvl in 1:length(grids)
+        # Update obstacle array on GPU
+        copyto!(grids[lvl].obstacle, cpu_grids[lvl].obstacle)
+
+        # Update wall distances
+        if WALL_MODEL_ENABLED
+            copyto!(grids[lvl].wall_dist, cpu_grids[lvl].wall_dist)
+        end
+
+        # Update Bouzidi q-map if applicable
+        if grids[lvl].bouzidi_enabled
+            copyto!(grids[lvl].bouzidi_q_map, cpu_grids[lvl].bouzidi_q_map)
+            copyto!(grids[lvl].bouzidi_tri_map, cpu_grids[lvl].bouzidi_tri_map)
+        end
+    end
 end

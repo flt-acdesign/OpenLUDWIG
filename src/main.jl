@@ -84,23 +84,47 @@ function solve_main()
     force_csv = joinpath(output_dir, "forces.csv")
     if FORCE_COMPUTATION_ENABLED; write_force_csv_header(force_csv); end
     
-    stl_path = isfile(STL_FILE) ? STL_FILE : (isfile(joinpath(CASE_DIR, "model.stl")) ? joinpath(CASE_DIR, "model.stl") : error("STL not found"))
-    
-    log_walltime("Building domain...")
-    cpu_grids, geometry_mesh = setup_multilevel_domain(stl_path; num_levels=NUM_LEVELS_CONFIG)
-    
+    # --- Geometry Loading (Multi-STL or Single) ---
+    geometry_parts = nothing  # Stored for dynamic re-meshing
+    is_dynamic_geo = false
+    remesh_freq = 0
+
+    if HAS_MULTI_GEOMETRY
+        log_walltime("Loading multi-geometry configuration...")
+        geometry_parts = Geometry.load_multiple_geometries(GEOMETRIES_CONFIG, CASE_DIR)
+        is_dynamic_geo = Geometry.has_dynamic_geometry(geometry_parts)
+
+        log_walltime("Building domain from $(length(geometry_parts)) geometry parts...")
+        cpu_grids, geometry_mesh = setup_multilevel_domain_from_parts(geometry_parts; num_levels=NUM_LEVELS_CONFIG)
+
+        if is_dynamic_geo
+            remesh_freq = REMESH_INTERVAL > 0 ? REMESH_INTERVAL : 50
+            println("[Dynamic] Geometry will be re-voxelized every $remesh_freq steps")
+        end
+    else
+        stl_path = isfile(STL_FILE) ? STL_FILE : (isfile(joinpath(CASE_DIR, "model.stl")) ? joinpath(CASE_DIR, "model.stl") : error("STL not found"))
+
+        log_walltime("Building domain...")
+        cpu_grids, geometry_mesh = setup_multilevel_domain(stl_path; num_levels=NUM_LEVELS_CONFIG)
+    end
+
     params = get_domain_params()
     domain_nx, domain_ny, domain_nz = params.nx_coarse, params.ny_coarse, params.nz_coarse
-    
+
     println("[Info] Re = $(round(params.re_number)), τ_levels = $(join([@sprintf("%.6f", t) for t in params.tau_levels], ", "))")
-    
+
     log_walltime("Transferring to GPU...")
+
+    # Keep CPU grids for dynamic re-voxelization
+    cpu_grids_ref = is_dynamic_geo ? cpu_grids : nothing
     grids = [adapt(backend, g) for g in cpu_grids]
-    
+
     # Upload mesh geometry to GPU for force computation
     gpu_mesh = Geometry.upload_mesh_to_gpu(geometry_mesh, backend)
-    
-    cpu_grids = nothing; GC.gc()
+
+    if !is_dynamic_geo
+        cpu_grids = nothing; GC.gc()
+    end
     
     cx_gpu, cy_gpu, cz_gpu, w_gpu, opp_gpu, mirror_y_gpu, mirror_z_gpu = build_lattice_arrays_gpu(backend)
 
@@ -178,7 +202,40 @@ function solve_main()
                                domain_nx, domain_ny, domain_nz,
                                params.wall_model_active, c_wale, nu_sgs_bg,
                                inlet_turb, use_temporal, sponge_blend)
-        
+
+        # --- Dynamic Geometry Re-meshing ---
+        if is_dynamic_geo && remesh_freq > 0 && batch_end % remesh_freq == 0
+            time_phys_remesh = Float64(batch_end) * params.time_scale
+            log_walltime("Re-meshing dynamic geometry at t=$(round(time_phys_remesh, digits=6))s...")
+
+            # Update merged mesh with new transforms
+            geometry_mesh = Geometry.merge_geometry_parts(geometry_parts, time_phys_remesh)
+
+            # Re-voxelize on CPU grids
+            revoxelize_geometry!(cpu_grids_ref, geometry_mesh, params)
+
+            # Transfer updated geometry to GPU
+            update_gpu_geometry!(grids, cpu_grids_ref, backend)
+
+            # Update GPU mesh for force computation
+            gpu_mesh = Geometry.upload_mesh_to_gpu(geometry_mesh, backend)
+
+            # Re-initialize force data if triangle count changed (shouldn't normally happen)
+            if force_data !== nothing && gpu_mesh.n_triangles != length(force_data.pressure_map)
+                force_data = ForceData(gpu_mesh.n_triangles, backend;
+                                       rho_ref=params.rho_physical,
+                                       u_ref=params.u_physical,
+                                       area_ref=params.reference_area,
+                                       chord_ref=params.reference_chord,
+                                       moment_center=params.moment_center,
+                                       force_scale=params.force_scale,
+                                       length_scale=params.length_scale,
+                                       symmetric=SYMMETRIC_ANALYSIS)
+            end
+
+            KernelAbstractions.synchronize(backend)
+        end
+
         # Diagnostics output
         if batch_end % DIAG_FREQ < actual || batch_end == STEPS
             diag_step = (batch_end ÷ DIAG_FREQ) * DIAG_FREQ

@@ -1,0 +1,150 @@
+# ==============================================================================
+# MULTI-STL CONFIGURATION EXAMPLE
+# ==============================================================================
+#
+# This example shows how to use multiple STL files with per-geometry
+# transformations (translation, rotation, angular velocity).
+#
+# --- GEOMETRY OPTIONS ---
+#
+# Option A: Single STL (traditional, backward compatible):
+#   basic:
+#     stl_file: "ball1m.stl"
+#     stl_scale: 1.0
+#
+# Option B: Multiple STL with transforms (new):
+#   basic:
+#     geometries:
+#       - stl_file: "body.stl"
+#         stl_scale: 1.0
+#         ...
+#       - stl_file: "propeller.stl"
+#         stl_scale: 1.0
+#         ...
+#     remesh_interval: 50  # steps between re-voxelizations (only for dynamic)
+#
+# --- TRANSFORM PARAMETERS ---
+#
+# Each geometry entry supports:
+#   translation: [x, y, z]         # Offset in meters (applied after rotation)
+#   rotation:
+#     axis: [x, y, z]              # Rotation axis (will be normalized)
+#     angle: 0.0                   # Initial rotation angle [degrees]
+#     angular_velocity: 0.0        # Angular velocity [rad/s] (0 = static)
+#     center: [x, y, z]            # Center of rotation [meters, in STL coords]
+#
+# ==============================================================================
+
+basic:
+  # --- Multiple geometries with transforms ---
+  geometries:
+    # Part 1: Static sphere (no transform, same as original config)
+    - stl_file: "ball1m.stl"
+      stl_scale: 1.0
+
+    # Part 2: Same sphere translated +2m in Y (example of second body)
+    # - stl_file: "ball1m.stl"
+    #   stl_scale: 0.5
+    #   translation: [0.0, 2.0, 0.0]
+
+    # Part 3: Rotating body example (uncomment to use)
+    # - stl_file: "ball1m.stl"
+    #   stl_scale: 0.25
+    #   translation: [0.0, 0.0, 1.0]
+    #   rotation:
+    #     axis: [1.0, 0.0, 0.0]         # Rotate around X axis
+    #     angle: 0.0                      # No initial angle
+    #     angular_velocity: 10.0          # 10 rad/s
+    #     center: [0.0, 0.0, 0.0]        # Rotate around origin
+
+  # Re-voxelization interval for dynamic geometry (steps)
+  # Only used when at least one geometry has angular_velocity != 0
+  # Lower = more accurate but slower. 0 = auto (default: 50 steps)
+  remesh_interval: 50
+
+  surface_resolution: 55
+  num_levels: 7
+  reference_area_of_full_model: 1.0
+  reference_chord: 1.0
+  reference_length_for_meshing: 1.0
+  reference_dimension: "x"
+
+  fluid:
+    density: 1.225
+    kinematic_viscosity: 1.5e-5
+
+  flow:
+    velocity: 148
+
+  simulation:
+    steps: 12000
+    ramp_steps: 2000
+    output_freq: 3000
+    output_dir: "RESULTS"
+    output_fields:
+      density: false
+      velocity: true
+      velocity_magnitude: true
+      vorticity: false
+      obstacle: true
+      level: true
+      bouzidi: false
+
+advanced:
+  numerics:
+    u_lattice: 0.03
+    c_wale: 0.50
+    tau_min: 0.500001
+    tau_safety_factor: 1.0
+    inlet_turbulence_intensity: 0.0
+
+  high_re:
+    auto_levels: false
+    max_levels: 12
+    min_coarse_blocks: 4
+    wall_model:
+      enabled: true
+      type: "equilibrium"
+      y_plus_target: 100.0
+    adaptive_refinement:
+      enabled: false
+      criterion: "vorticity"
+      threshold: 0.1
+
+  domain:
+    upstream: 3.75
+    downstream: 4.5
+    lateral: 3.75
+    height: 3.75
+    sponge_thickness: 0.10
+
+  refinement:
+    block_size: 8
+    margin: 2
+    strategy: "geometry_first"
+    symmetric_analysis: false
+    wake_enabled: true
+    wake_length: 0.25
+    wake_width_factor: 0.1
+    wake_height_factor: 0.1
+
+  boundary:
+    method: "bouzidi"
+    bouzidi_levels: 1
+    use_float16_qmap: true
+    q_min_threshold: 0.001
+
+  forces:
+    enabled: true
+    output_freq: 0
+    moment_center: [0.25, 0.0, 0.0]
+
+  diagnostics:
+    freq: 200
+    stability_check: true
+    print_tau_warning: true
+
+  gpu:
+    async_depth: 8
+    use_streams: true
+    prefetch_neighbors: true
